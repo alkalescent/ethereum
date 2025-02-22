@@ -72,7 +72,6 @@ class Node:
             ]
 
         cmd = ['geth'] + args
-
         return self.run_cmd(cmd)
 
     def consensus(self):

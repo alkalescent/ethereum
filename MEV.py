@@ -6,6 +6,7 @@ from Constants import RELAYS, AWS
 
 class Booster:
     def get_relays(self):
+        print("Determining reliable relays...")
         relays = {relay: 0 for relay in RELAYS}
         bad_relays = set()
         num_trials = 5
@@ -22,8 +23,9 @@ class Booster:
             sleep(1)
 
         for relay in bad_relays:
+            print(f'Invalid relay: {relay}')
             del relays[relay]
-
+        
         ping_times = [v for _, v in relays.items()]
         if len(ping_times) < 2:
             print('Error in relay testing. Defaulting to using all specified relays.')
@@ -35,6 +37,7 @@ class Booster:
 
         for relay, res_time in relays.items():
             if abs(avg - res_time) < (2 * dev):
+                print(f'Valid relay: {relay}')
                 valid_relays.append(relay)
 
         return valid_relays
