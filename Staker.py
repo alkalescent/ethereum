@@ -72,14 +72,13 @@ class Node:
             ]
 
         cmd = ['geth'] + args
-
         return self.run_cmd(cmd)
 
     def consensus(self):
         args = [
             '--accept-terms-of-use',
             f'--execution-endpoint={self.ipc_path}',
-
+            '--blob-storage-layout=by-epoch',
             # alternatively http://127.0.0.1:18550
             '--http-mev-relay=http://localhost:18550',
         ]
