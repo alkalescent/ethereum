@@ -21,11 +21,12 @@ ENV PRYSM_DIR "${ETH_DIR}${PRYSM_DIR_BASE}"
 
 # Install deps
 RUN apt-get update && \
-    apt-get install -y python3 git curl bash python3-pip
+    apt-get install -y python3 git curl bash python3-pip iputils-ping
 
 RUN python3 -m venv "${ETH_DIR}" --without-pip --system-site-packages
 # Use virtual env as default python path
 ENV PATH "${ETH_DIR}/bin:${PATH}"
+COPY requirements.txt .
 RUN python3 -m pip install -r requirements.txt
 
 # # Download geth (execution)
@@ -62,7 +63,7 @@ ENV PATH "${PATH}:${PRYSM_DIR}"
 
 # Download consensus snapshot
 COPY ".${PRYSM_DIR_BASE}/download_checkpoint.sh" .
-RUN bash download_checkpoint.sh
+# RUN bash download_checkpoint.sh
 
 # Download mev-boost and monitoring deps (extra)
 RUN mkdir -p "${EXTRA_DIR}"
@@ -101,9 +102,10 @@ ENV PATH "${PATH}:${EXTRA_DIR}"
 
 # Run app
 WORKDIR "${ETH_DIR}"
-COPY "scripts/vpn/setup.sh" .
-RUN bash vpn.sh
+COPY vpn vpn
+RUN bash vpn/setup.sh
 
-COPY Staker.py Backup.py Constants.py MEV.py ./
-EXPOSE 30303/tcp 30303/udp 13000/tcp 12000/udp
-ENTRYPOINT ["python3", "Staker.py"]
+# COPY Staker.py Backup.py Constants.py MEV.py ./
+# EXPOSE 30303/tcp 30303/udp 13000/tcp 12000/udp
+# ENTRYPOINT ["python3", "Staker.py"]
+ENTRYPOINT ping google.com

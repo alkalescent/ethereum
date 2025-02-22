@@ -15,8 +15,8 @@ def download_db():
 
 
 def download_file(url):
-    filename = f"{CONFIG_DIR}/{url.split('/')[-1]}"
-    urllib.request.urlretrieve(url, f"{CONFIG_DIR}/{url.split('/')[-1]}")
+    filename = os.path.join(CONFIG_DIR, url.split('/')[-1])
+    urllib.request.urlretrieve(url, filename)
     return filename
 
 
@@ -42,7 +42,9 @@ def geolocate(filename):
 
 
 def get_servers():
-    with open('scripts/vpn/nordvpn.html') as file:
+    full_path = os.path.realpath(__file__)
+    curr_dir = os.path.dirname(full_path)
+    with open(os.path.join(curr_dir, 'nordvpn.html')) as file:
         content = file.read()
         matches = re.findall(
             r'https:\/\/downloads.nordcdn.com\/configs\/files\/ovpn_tcp\/servers\/us\d+.nordvpn.com.tcp.ovpn', content)

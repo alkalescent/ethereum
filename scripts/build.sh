@@ -8,5 +8,5 @@ docker build \
     --build-arg DEPLOY_ENV=prod \
     --build-arg ARCH=amd64 \
     --build-arg \
-    VPN=false \
+    VPN=true \
     .
