@@ -101,7 +101,7 @@ ENV PATH "${PATH}:${EXTRA_DIR}"
 
 # Run app
 WORKDIR "${ETH_DIR}"
-COPY "scripts/vpn.sh" .
+COPY "scripts/vpn/setup.sh" .
 RUN bash vpn.sh
 
 COPY Staker.py Backup.py Constants.py MEV.py ./
