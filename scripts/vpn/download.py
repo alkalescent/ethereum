@@ -1,6 +1,6 @@
 import os
 import re
-import geoip2.webservice
+import geoip2.database
 import urllib.request
 from pathlib import Path
 from multiprocessing import Pool
@@ -20,20 +20,23 @@ def download_file(url):
     return filename
 
 
-def geolocate_server(filename):
+def delete_file(filename):
+    os.remove(filename)
+
+
+def geolocate(filename):
     with open(filename, 'r') as file:
         lines = file.readlines()
         for line in lines:
             if line.startswith('remote '):
                 break
         ip = line.split(' ')[1]
-        with geoip2.webservice.Client(10, 'license_key', host='geolite.info') as client:
-            response = client.city(ip)
-            print('city', response)
-            print(response.city.iso_code)
+        with geoip2.database.Reader(DB_PATH) as reader:
+            response = reader.city(ip)
+            return response.city.names['en']
 
 
-def download_configs():
+def get_servers():
     with open('scripts/vpn/nordvpn.html') as file:
         content = file.read()
         matches = re.findall(
@@ -42,14 +45,21 @@ def download_configs():
             return p.map(download_file, matches)
 
 
-def geolocate_servers(config_files):
+def multigeolocate(servers):
     with Pool() as p:
-        return p.map(geolocate_server, config_files)
+        return p.map(geolocate, servers)
 
 
 if __name__ == '__main__':
     Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
-    db_path = download_db()
-    # filenames = download_configs()
-    filenames = [f'{CONFIG_DIR}/{fn}' for fn in os.listdir(CONFIG_DIR)][:1]
-    geolocate_servers(filenames)
+    # db_path = download_db()
+    # servers = get_servers()[:10]
+    servers = [
+        f'{CONFIG_DIR}/{fn}' for fn in os.listdir(CONFIG_DIR) if fn not in DB_PATH]
+    locations = multigeolocate(servers)
+    far_servers = [server for server, location in zip(
+        servers, locations
+    ) if not (
+        location == 'Miami' or location == 'Atlanta'
+    )]
+    print(far_servers)
