@@ -164,10 +164,10 @@ class Node:
         return self.run_cmd(cmd)
 
     def vpn(self):
-        IVACY_USER = os.environ['IVACY_USER']
-        IVACY_PASS = os.environ['IVACY_PASS']
+        VPN_USER = os.environ['VPN_USER']
+        VPN_PASS = os.environ['VPN_PASS']
         with open('vpn_creds.txt', 'w') as file:
-            file.write(f'{IVACY_USER}\n{IVACY_PASS}')
+            file.write(f'{VPN_USER}\n{VPN_PASS}')
         args = ['--config', 'config/US_Miami_TCP.ovpn',
                 '--auth-user-pass', 'vpn_creds.txt']
         cmd = ['openvpn'] + args
