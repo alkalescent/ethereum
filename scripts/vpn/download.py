@@ -59,8 +59,6 @@ if __name__ == '__main__':
     Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
     db_path = download_db()
     servers = get_servers()
-    servers = [
-        f'{CONFIG_DIR}/{fn}' for fn in os.listdir(CONFIG_DIR) if fn not in DB_PATH]
     locations = multigeolocate(servers)
     far_servers = [server for server, location in zip(
         servers, locations
