@@ -7,4 +7,5 @@ execution
 cmd.txt
 extra
 *.txt
+!requirements.txt
 config
