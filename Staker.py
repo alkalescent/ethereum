@@ -6,6 +6,7 @@ import logging
 import requests
 from time import time, sleep
 import subprocess
+from random import choice
 from rich.console import Console
 from glob import glob
 from Constants import DEPLOY_ENV, AWS, SNAPSHOT_DAYS, DEV, BEACONCHAIN_KEY, KILL_TIME, ETH_ADDR, DOCKER, VPN, NORDVPN
@@ -164,12 +165,12 @@ class Node:
         return self.run_cmd(cmd)
 
     def vpn(self):
-
         VPN_USER = os.environ['VPN_USER']
         VPN_PASS = os.environ['VPN_PASS']
         with open('vpn_creds.txt', 'w') as file:
             file.write(f'{VPN_USER}\n{VPN_PASS}')
-        args = ['--config', 'config/US_Miami_TCP.ovpn',
+        cfg = choice(glob('config/*.tcp.ovpn'))
+        args = ['--config', cfg,
                 '--auth-user-pass', 'vpn_creds.txt']
         cmd = ['openvpn'] + args
         return self.run_cmd(cmd)
