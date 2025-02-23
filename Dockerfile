@@ -104,7 +104,7 @@ ENV PATH "${PATH}:${EXTRA_DIR}"
 # Run app
 WORKDIR "${ETH_DIR}"
 COPY vpn vpn
-RUN --mount=type=secret,id=NORDVPN,env=NORDVPN bash vpn/setup.sh
+RUN bash vpn/setup.sh
 
 # COPY Staker.py Backup.py Constants.py MEV.py ./
 # EXPOSE 30303/tcp 30303/udp 13000/tcp 12000/udp

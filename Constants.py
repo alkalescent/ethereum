@@ -4,6 +4,7 @@ import os
 DEPLOY_ENV = os.environ['DEPLOY_ENV']
 BEACONCHAIN_KEY = os.environ['BEACONCHAIN_KEY']
 ETH_ADDR = os.environ['ETH_ADDR']
+NORDVPN = os.environ['NORDVPN']
 DEV = DEPLOY_ENV.lower() == 'dev'
 KILL_TIME = 30
 MAX_PEERS = 10

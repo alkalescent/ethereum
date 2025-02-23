@@ -8,7 +8,7 @@ from time import time, sleep
 import subprocess
 from rich.console import Console
 from glob import glob
-from Constants import DEPLOY_ENV, AWS, SNAPSHOT_DAYS, DEV, BEACONCHAIN_KEY, KILL_TIME, ETH_ADDR, DOCKER, VPN
+from Constants import DEPLOY_ENV, AWS, SNAPSHOT_DAYS, DEV, BEACONCHAIN_KEY, KILL_TIME, ETH_ADDR, DOCKER, VPN, NORDVPN
 from Backup import Snapshot
 from MEV import Booster
 
@@ -164,6 +164,7 @@ class Node:
         return self.run_cmd(cmd)
 
     def vpn(self):
+
         VPN_USER = os.environ['VPN_USER']
         VPN_PASS = os.environ['VPN_PASS']
         with open('vpn_creds.txt', 'w') as file:

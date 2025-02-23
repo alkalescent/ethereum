@@ -11,8 +11,7 @@ docker run \
     --env BEACONCHAIN_KEY="" \
     --env AWS_DEFAULT_REGION=us-east-1 \
     --env DOCKER=true \
-    --env VPN_USER="${VPN_USER}" \
-    --env VPN_PASS="${VPN_PASS}" \
+    --env NORDVPN="${NORDVPN}" \
     --env VPN="${VPN}" \
     --cap-add=NET_ADMIN \
     --device=/dev/net/tun \
