@@ -10,6 +10,12 @@ from multiprocessing import Pool
 CONFIG_DIR = 'config'
 DB_URL = "https://git.io/GeoLite2-City.mmdb"
 DB_PATH = f"{CONFIG_DIR}/{DB_URL.split('/')[-1]}"
+VPN_DIR = 'ovpn'
+TCP_DIR = 'ovpn_tcp'
+VPN_EXT = 'zip'
+ZIP_FN = f'{VPN_DIR}.{VPN_EXT}'
+ZIP_PATH = os.path.join(CONFIG_DIR, ZIP_FN)
+UNZIP_PATH = os.path.join(CONFIG_DIR, VPN_DIR)
 
 
 def download_db():
@@ -53,28 +59,11 @@ def move(cfg):
 
 
 def get_servers():
-    # full_path = os.path.realpath(__file__)
-    # curr_dir = os.path.dirname(full_path)
-    # with open(os.path.join(curr_dir, 'nordvpn.html')) as file:
-    #     content = file.read()
-    #     matches = re.findall(
-    #         r'https:\/\/downloads.nordcdn.com\/configs\/files\/ovpn_tcp\/servers\/us\d+.nordvpn.com.tcp.ovpn', content)
-    #     with Pool() as p:
-    #         return p.map(download_file, matches)
-
-    # NEW
-    VPN_DIR = 'ovpn'
-    TCP_DIR = 'ovpn_tcp'
-    VPN_EXT = 'zip'
-    ZIP_FN = f'{VPN_DIR}.{VPN_EXT}'
-    ZIP_PATH = os.path.join(CONFIG_DIR, ZIP_FN)
-    VPN_DIR = os.path.join(CONFIG_DIR, VPN_DIR)
     download_file(
         f'https://downloads.nordcdn.com/configs/archives/servers/{ZIP_FN}')
     with ZipFile(ZIP_PATH, 'r') as zf:
-        zf.extractall(VPN_DIR)
-    # cfgs = os.listdir(os.path.join(VPN_DIR, TCP_DIR))
-    cfgs = glob(os.path.join(VPN_DIR, TCP_DIR, '*.tcp.ovpn'))
+        zf.extractall(UNZIP_PATH)
+    cfgs = glob(os.path.join(UNZIP_PATH, TCP_DIR, '*.tcp.ovpn'))
     with Pool() as p:
         return p.map(move, cfgs)
 
@@ -86,11 +75,10 @@ def multigeolocate(servers):
 
 if __name__ == '__main__':
     Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
-    # db_path = download_db()
+    db_path = download_db()
     servers = get_servers()
-    # locations = multigeolocate(servers)
-    # far_servers = [server for server, location in zip(
-    #     servers, locations
-    # ) if location not in {'Miami', 'Atlanta'}]
-    # multidelete(far_servers)
-    # delete(DB_PATH)
+    locations = multigeolocate(servers)
+    far_servers = [server for server, location in zip(
+        servers, locations
+    ) if location not in {'Miami', 'Atlanta'}]
+    multidelete(far_servers + [DB_PATH, ZIP_PATH, UNZIP_PATH])
