@@ -9,7 +9,7 @@ import subprocess
 from random import choice
 from rich.console import Console
 from glob import glob
-from Constants import DEPLOY_ENV, AWS, SNAPSHOT_DAYS, DEV, BEACONCHAIN_KEY, KILL_TIME, ETH_ADDR, DOCKER, VPN, NORDVPN
+from Constants import DEPLOY_ENV, AWS, SNAPSHOT_DAYS, DEV, BEACONCHAIN_KEY, KILL_TIME, ETH_ADDR, DOCKER, VPN
 from Backup import Snapshot
 from MEV import Booster
 
