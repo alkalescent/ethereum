@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Base image
 FROM ubuntu:24.04
 
@@ -103,7 +104,7 @@ ENV PATH "${PATH}:${EXTRA_DIR}"
 # Run app
 WORKDIR "${ETH_DIR}"
 COPY vpn vpn
-RUN bash vpn/setup.sh
+RUN --mount=type=secret,id=NORDVPN,env=NORDVPN bash vpn/setup.sh
 
 # COPY Staker.py Backup.py Constants.py MEV.py ./
 # EXPOSE 30303/tcp 30303/udp 13000/tcp 12000/udp
