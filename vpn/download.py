@@ -43,6 +43,9 @@ def multidelete(paths):
 
 
 def geolocate(filename):
+    # filter out non American servers
+    if not filename.startswith('us'):
+        return
     with open(filename, 'r') as file:
         lines = file.readlines()
         for line in lines:
@@ -74,11 +77,12 @@ def multigeolocate(servers):
 
 
 if __name__ == '__main__':
-    Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
-    db_path = download_db()
-    servers = get_servers()
+    # Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+    # db_path = download_db()
+    # servers = get_servers()
+    servers = glob(os.path.join(CONFIG_DIR, '*.tcp.ovpn'))
     locations = multigeolocate(servers)
-    far_servers = [server for server, location in zip(
-        servers, locations
-    ) if location not in {'Miami', 'Atlanta'}]
-    multidelete(far_servers + [DB_PATH, ZIP_PATH, UNZIP_PATH])
+    # far_servers = [server for server, location in zip(
+    #     servers, locations
+    # ) if location not in {'Miami', 'Atlanta'}]
+    # multidelete(far_servers + [DB_PATH, ZIP_PATH, UNZIP_PATH])
