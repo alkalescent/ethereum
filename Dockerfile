@@ -64,7 +64,7 @@ ENV PATH "${PATH}:${PRYSM_DIR}"
 
 # Download consensus snapshot
 COPY ".${PRYSM_DIR_BASE}/download_checkpoint.sh" .
-# RUN bash download_checkpoint.sh
+RUN bash download_checkpoint.sh
 
 # Download mev-boost and monitoring deps (extra)
 RUN mkdir -p "${EXTRA_DIR}"
@@ -106,7 +106,6 @@ WORKDIR "${ETH_DIR}"
 COPY vpn vpn
 RUN bash vpn/setup.sh
 
-# COPY Staker.py Backup.py Constants.py MEV.py ./
-# EXPOSE 30303/tcp 30303/udp 13000/tcp 12000/udp
-# ENTRYPOINT ["python3", "Staker.py"]
-ENTRYPOINT ping google.com
+COPY Staker.py Backup.py Constants.py MEV.py ./
+EXPOSE 30303/tcp 30303/udp 13000/tcp 12000/udp
+ENTRYPOINT ["python3", "Staker.py"]
