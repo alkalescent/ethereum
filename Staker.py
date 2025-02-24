@@ -249,12 +249,14 @@ class Node:
 
     def color(self, text):
         styles = {
+            'OPENVPN': 'orange',
             'EXECUTION': 'bold magenta',
             'CONSENSUS': 'bold cyan',
             'VALIDATION': 'bold yellow',
             'MEV_BOOST': 'bold green',
             'INFO': 'green',
             'WARN': 'bright_yellow',
+            'WARNING': 'bright_yellow',
             'ERROR': 'bright_red',
             'level=info': 'green',
             'level=warning': 'bright_yellow',
