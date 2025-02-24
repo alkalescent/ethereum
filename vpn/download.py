@@ -43,9 +43,6 @@ def multidelete(paths):
 
 
 def geolocate(filename):
-    # filter out non American servers
-    if not filename.startswith(os.path.join(CONFIG_DIR, 'us')):
-        return
     with open(filename, 'r') as file:
         lines = file.readlines()
         for line in lines:
@@ -82,7 +79,6 @@ if __name__ == '__main__':
     db_path = download_db()
     servers = get_servers()
     locations = multigeolocate(servers)
-    print(locations)
     far_servers = [server for server, location in zip(
         servers, locations
     ) if location not in {'Miami', 'Atlanta'}]
