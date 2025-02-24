@@ -44,7 +44,7 @@ def multidelete(paths):
 
 def geolocate(filename):
     # filter out non American servers
-    if not filename.startswith('us'):
+    if not filename.startswith(os.path.join(CONFIG_DIR, 'us')):
         return
     with open(filename, 'r') as file:
         lines = file.readlines()
@@ -54,7 +54,7 @@ def geolocate(filename):
         ip = line.split(' ')[1]
         with geoip2.database.Reader(DB_PATH) as reader:
             response = reader.city(ip)
-            return response.city.names['en']
+            return response.city.names.get('en')
 
 
 def move(cfg):
@@ -66,7 +66,8 @@ def get_servers():
         f'https://downloads.nordcdn.com/configs/archives/servers/{ZIP_FN}')
     with ZipFile(ZIP_PATH, 'r') as zf:
         zf.extractall(UNZIP_PATH)
-    cfgs = glob(os.path.join(UNZIP_PATH, TCP_DIR, '*.tcp.ovpn'))
+    # only use American servers
+    cfgs = glob(os.path.join(UNZIP_PATH, TCP_DIR, 'us*.tcp.ovpn'))
     with Pool() as p:
         return p.map(move, cfgs)
 
@@ -77,12 +78,12 @@ def multigeolocate(servers):
 
 
 if __name__ == '__main__':
-    # Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
-    # db_path = download_db()
-    # servers = get_servers()
-    servers = glob(os.path.join(CONFIG_DIR, '*.tcp.ovpn'))
+    Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+    db_path = download_db()
+    servers = get_servers()
     locations = multigeolocate(servers)
-    # far_servers = [server for server, location in zip(
-    #     servers, locations
-    # ) if location not in {'Miami', 'Atlanta'}]
-    # multidelete(far_servers + [DB_PATH, ZIP_PATH, UNZIP_PATH])
+    print(locations)
+    far_servers = [server for server, location in zip(
+        servers, locations
+    ) if location not in {'Miami', 'Atlanta'}]
+    multidelete(far_servers + [DB_PATH, ZIP_PATH, UNZIP_PATH])
