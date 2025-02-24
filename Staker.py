@@ -169,7 +169,7 @@ class Node:
         VPN_PASS = os.environ['VPN_PASS']
         with open('vpn_creds.txt', 'w') as file:
             file.write(f'{VPN_USER}\n{VPN_PASS}')
-        cfg = choice(glob('config/*.tcp.ovpn'))
+        cfg = choice(glob('config/us*.tcp.ovpn'))
         args = ['--config', cfg,
                 '--auth-user-pass', 'vpn_creds.txt']
         cmd = ['openvpn'] + args
