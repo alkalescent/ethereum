@@ -22,7 +22,7 @@ ENV PRYSM_DIR "${ETH_DIR}${PRYSM_DIR_BASE}"
 
 # Install deps
 RUN apt-get update && \
-    apt-get install -y python3 git curl bash python3-pip iputils-ping
+    apt-get install -y python3 git curl bash python3-pip
 
 RUN python3 -m venv "${ETH_DIR}" --without-pip --system-site-packages
 # Use virtual env as default python path
