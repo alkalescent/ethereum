@@ -1,5 +1,7 @@
 import os
+import secrets
 import requests
+from mnemonic import Mnemonic
 # def get_seed(filename: str) -> bytes:
 #     """Get the seed from a file."""
 #     with open(filename, "rb") as f:
@@ -47,13 +49,21 @@ def get_wordlist_lookup() -> dict[str, int]:
     return {word: index for index, word in enumerate(words)}
 
 
+def generate_seed(num_words) -> list[str]:
+    """Generate a random seed of BIP39 words."""
+    ensure_wordlist()
+    words = get_wordlist()
+    return [secrets.choice(words) for _ in range(num_words)]
+
+
 # idx = get_wordlist_lookup()['zoo']
 # print('legal idx: ', idx)
 # print('legal bin: ', bin(idx))
 # print('legal hex: ', hex(idx))
-idx1 = get_wordlist_lookup()['romance']
-idx2 = get_wordlist_lookup()['lion']
-idx3 = get_wordlist_lookup()['vault']
+lookup = get_wordlist_lookup()
+idx1 = lookup['romance']
+idx2 = lookup['lion']
+idx3 = lookup['vault']
 idx = idx1 ^ idx2 ^ idx3
 print('idx: ', idx)
 print('hex: ', hex(idx))
