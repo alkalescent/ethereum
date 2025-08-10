@@ -56,6 +56,15 @@ def generate_seed(num_words) -> list[str]:
     return words
 
 
+def xor_words(words: list[str]) -> str:
+    """XOR a list of BIP39 words to get a single word."""
+    lookup = get_wordlist_lookup()
+    idx = 0
+    for word in words:
+        idx ^= lookup[word]
+    return lookup[idx]
+
+
 # idx = get_wordlist_lookup()['zoo']
 # print('legal idx: ', idx)
 # print('legal bin: ', bin(idx))
