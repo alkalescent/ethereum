@@ -9,43 +9,45 @@ from mnemonic import Mnemonic
 
 
 DIR = os.path.dirname(os.path.abspath(__file__))
+FILENAME = "words.txt"
+FILE = os.path.join(DIR, FILENAME)
 
 
-def download_wordlist() -> None:
-    """Download the BIP39 wordlist files."""
+def download_words() -> None:
+    """Download the BIP39 words file."""
     url = "https://raw.githubusercontent.com/bitcoin/bips/refs/heads/master/bip-0039/english.txt"
     response = requests.get(url)
     if response.ok:
-        with open(os.path.join(DIR, "wordlist.txt"), "w") as file:
+        with open(FILE, "w") as file:
             file.write(response.content.decode())
 
 
-def check_wordlist() -> bool:
-    """Check if the wordlist is present."""
-    with open(os.path.join(DIR, "wordlist.txt"), "r") as file:
+def check_words() -> bool:
+    """Check if the words is present."""
+    with open(FILE, "r") as file:
         words = file.read().splitlines()
         return len(words) == 2048 and all(len(word) > 0 for word in words)
 
 
-def ensure_wordlist() -> None:
-    """Ensure the wordlist is present, downloading it if necessary."""
-    if not os.path.exists(os.path.join(DIR, "wordlist.txt")) or not check_wordlist():
-        download_wordlist()
-        if not check_wordlist():
+def ensure_words() -> None:
+    """Ensure the words is present, downloading it if necessary."""
+    if not os.path.exists(FILE) or not check_words():
+        download_words()
+        if not check_words():
             raise RuntimeError(
-                "Failed to download or validate the BIP39 wordlist.")
+                "Failed to download or validate the BIP39 words.")
 
 
-def get_wordlist() -> list[str]:
-    """Get the BIP39 wordlist."""
-    ensure_wordlist()
-    with open(os.path.join(DIR, "wordlist.txt"), "r") as file:
+def get_words() -> list[str]:
+    """Get the BIP39 words."""
+    ensure_words()
+    with open(FILE, "r") as file:
         return file.read().splitlines()
 
 
-def get_wordlist_lookup() -> dict[str, int]:
-    """Get a lookup dictionary for the BIP39 wordlist."""
-    words = get_wordlist()
+def get_words_map() -> dict[str, int]:
+    """Get a dictionary for the BIP39 words."""
+    words = get_words()
     return {word: index for index, word in enumerate(words)}
 
 
@@ -58,32 +60,32 @@ def generate_seed(num_words) -> list[str]:
 
 def xor_words(words: list[str]) -> str:
     """XOR a list of BIP39 words to get a single word."""
-    lookup = get_wordlist_lookup()
+    map = get_words_map()
     idx = 0
     for word in words:
-        idx ^= lookup[word]
-    return lookup[idx]
+        idx ^= map[word]
+    return map[idx]
 
 
-# idx = get_wordlist_lookup()['zoo']
+# idx = get_words_map()['zoo']
 # print('legal idx: ', idx)
 # print('legal bin: ', bin(idx))
 # print('legal hex: ', hex(idx))
-lookup = get_wordlist_lookup()
-idx1 = lookup['romance']
-idx2 = lookup['lion']
-idx3 = lookup['vault']
+map = get_words_map()
+idx1 = map['romance']
+idx2 = map['lion']
+idx3 = map['vault']
 idx = idx1 ^ idx2 ^ idx3
 print('idx: ', idx)
 print('hex: ', hex(idx))
-print('word: ', get_wordlist()[idx])
+print('word: ', get_words()[idx])
 
 seed = generate_seed(12)
 print('seed words: ', seed)
 print('seed check: ', Mnemonic().check(seed))
 print('seed: ', Mnemonic().to_seed(seed))
-random_words = " ".join(secrets.choice(get_wordlist()) for _ in range(24))
+random_words = " ".join(secrets.choice(get_words()) for _ in range(24))
 print('random words: ', random_words)
 print('seed check: ', Mnemonic().check(random_words))
 # print('seed: ', Mnemonic().to_seed(
-#     "".join(secrets.choice(get_wordlist()) for _ in range(24))))
+#     "".join(secrets.choice(get_words()) for _ in range(24))))
