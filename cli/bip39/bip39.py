@@ -71,64 +71,74 @@ def xor_words(words: list[str]) -> str:
 long_mnemonic = generate_seed(24)
 long_mnemonic_str = " ".join(long_mnemonic)
 print("Generated 24-word mnemonic:", long_mnemonic_str)
-# Check if the mnemonic is valid
+# # Check if the mnemonic is valid
 mnemo = Mnemonic()
-is_valid = mnemo.check(long_mnemonic_str)
-print("Is the mnemonic valid?", is_valid)
+# is_valid = mnemo.check(long_mnemonic_str)
+# print("Is the mnemonic valid?", is_valid)
 
-# Generate a 12 word mnemonic (Seed A)
-short_mnemonic = generate_seed(12)
-short_mnemonic_str = " ".join(short_mnemonic)
-print("Generated 12-word mnemonic:", short_mnemonic_str)
-# Check if the mnemonic is valid
-is_valid = mnemo.check(short_mnemonic_str)
-print("Is the mnemonic valid?", is_valid)
+# # Generate a 12 word mnemonic (Seed A)
+# short_mnemonic = generate_seed(12)
+# short_mnemonic_str = " ".join(short_mnemonic)
+# print("Generated 12-word mnemonic:", short_mnemonic_str)
+# # Check if the mnemonic is valid
+# is_valid = mnemo.check(short_mnemonic_str)
+# print("Is the mnemonic valid?", is_valid)
 
-# XOR a new short mnemonic (Seed B)
-# len of long mnemonic
-master_mnemonic = long_mnemonic[-len(short_mnemonic):]
-master_mnemonic_str = " ".join(master_mnemonic)
-print("Master mnemonic for XOR:", master_mnemonic_str)
+# # XOR a new short mnemonic (Seed B)
+# # len of long mnemonic
+# master_mnemonic = long_mnemonic[-len(short_mnemonic):]
+# master_mnemonic_str = " ".join(master_mnemonic)
+# print("Master mnemonic for XOR:", master_mnemonic_str)
 
-# Check if the master mnemonic is valid
-is_valid = mnemo.check(master_mnemonic_str)
-print("Is the master mnemonic valid?", is_valid)
+# # Check if the master mnemonic is valid
+# is_valid = mnemo.check(master_mnemonic_str)
+# print("Is the master mnemonic valid?", is_valid)
 
-xor_result = []
-for idx, word in enumerate(master_mnemonic):
-    xor_result.append(xor_words([word, short_mnemonic[idx]]))
+# xor_result = []
+# for idx, word in enumerate(master_mnemonic):
+#     xor_result.append(xor_words([word, short_mnemonic[idx]]))
 
-xor_result_str = " ".join(xor_result)
-print("XOR result:", xor_result_str)
+# xor_result_str = " ".join(xor_result)
+# print("XOR result:", xor_result_str)
 
-# Check if the XOR result is valid
-is_valid = mnemo.check(xor_result_str)
-print("Is the XOR result valid?", is_valid)
-# On average, the XOR result will be invalid.
-# However, there exists a short mnemonic that can be XORed with the master mnemonic to produce a valid mnemonic.
+# # Check if the XOR result is valid
+# is_valid = mnemo.check(xor_result_str)
+# print("Is the XOR result valid?", is_valid)
+# # On average, the XOR result will be invalid.
+# # However, there exists a short mnemonic that can be XORed with the master mnemonic to produce a valid mnemonic.
 
+# Convert the 24-word seed to its 256-bit (32-byte) entropy
+long_entropy = mnemo.to_entropy(long_mnemonic_str)
 
-# # idx = get_words_map()['zoo']
-# # print('legal idx: ', idx)
-# # print('legal bin: ', bin(idx))
-# # print('legal hex: ', hex(idx))
-# map = get_words_map()
-# idx1 = map['romance']
-# idx2 = map['lion']
-# idx3 = map['vault']
-# idx = idx1 ^ idx2 ^ idx3
-# print('idx: ', idx)
-# print('hex: ', hex(idx))
-# print('word: ', get_words()[idx])
+# Split the 32-byte entropy into two 16-byte (128-bit) halves
+entropy_part_1 = long_entropy[:16]
+entropy_part_2 = long_entropy[16:]
 
-# print('xor: ', xor_words(['romance', 'lion', 'vault']))
+# Convert each 128-bit entropy half into a new, valid 12-word seed phrase
+seed_part_1 = mnemo.to_mnemonic(entropy_part_1)
+seed_part_2 = mnemo.to_mnemonic(entropy_part_2)
 
-# seed = generate_seed(12)
-# print('seed words: ', seed)
-# print('seed check: ', Mnemonic().check(seed))
-# print('seed: ', Mnemonic().to_seed(seed))
-# random_words = " ".join(secrets.choice(get_words()) for _ in range(24))
-# print('random words: ', random_words)
-# print('seed check: ', Mnemonic().check(random_words))
-# # print('seed: ', Mnemonic().to_seed(
-# #     "".join(secrets.choice(get_words()) for _ in range(24))))
+# Print the two 12-word seed phrases
+print("Seed Part 1 (12 words):", seed_part_1)
+print("Seed Part 2 (12 words):", seed_part_2)
+
+# Check if the two 12-word seed phrases are valid
+is_valid_part_1 = mnemo.check(seed_part_1)
+is_valid_part_2 = mnemo.check(seed_part_2)
+print("Is Seed Part 1 valid?", is_valid_part_1)
+print("Is Seed Part 2 valid?", is_valid_part_2)
+
+# Convert the two 12-word parts back to their entropy
+recovered_entropy_1 = mnemo.to_entropy(seed_part_1)
+recovered_entropy_2 = mnemo.to_entropy(seed_part_2)
+
+# Concatenate (join) the two entropy halves
+reconstructed_master_entropy = recovered_entropy_1 + recovered_entropy_2
+
+# Convert the full 256-bit entropy back to the master seed phrase
+reconstructed_master_seed = mnemo.to_mnemonic(reconstructed_master_entropy)
+print("Reconstructed Master Seed (24 words):", reconstructed_master_seed)
+
+# Check if the reconstructed master seed is valid
+is_reconstructed_valid = mnemo.check(reconstructed_master_seed)
+print("Is the reconstructed master seed valid?", is_reconstructed_valid)
