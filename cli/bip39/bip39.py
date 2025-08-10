@@ -51,9 +51,9 @@ def get_wordlist_lookup() -> dict[str, int]:
 
 def generate_seed(num_words) -> list[str]:
     """Generate a random seed of BIP39 words."""
-    ensure_wordlist()
-    words = get_wordlist()
-    return [secrets.choice(words) for _ in range(num_words)]
+    mnemo = Mnemonic()
+    words = mnemo.generate(num_words * 32 // 3)
+    return words
 
 
 # idx = get_wordlist_lookup()['zoo']
@@ -68,3 +68,13 @@ idx = idx1 ^ idx2 ^ idx3
 print('idx: ', idx)
 print('hex: ', hex(idx))
 print('word: ', get_wordlist()[idx])
+
+seed = generate_seed(12)
+print('seed words: ', seed)
+print('seed check: ', Mnemonic().check(seed))
+print('seed: ', Mnemonic().to_seed(seed))
+random_words = " ".join(secrets.choice(get_wordlist()) for _ in range(24))
+print('random words: ', random_words)
+print('seed check: ', Mnemonic().check(random_words))
+# print('seed: ', Mnemonic().to_seed(
+#     "".join(secrets.choice(get_wordlist()) for _ in range(24))))
