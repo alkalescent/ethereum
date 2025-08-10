@@ -55,7 +55,7 @@ def generate_seed(num_words) -> list[str]:
     """Generate a random seed of BIP39 words."""
     mnemo = Mnemonic()
     words = mnemo.generate(num_words * 32 // 3)
-    return words
+    return words.split()
 
 
 def xor_words(words: list[str]) -> str:
@@ -67,27 +67,68 @@ def xor_words(words: list[str]) -> str:
     return get_words()[idx]
 
 
-# idx = get_words_map()['zoo']
-# print('legal idx: ', idx)
-# print('legal bin: ', bin(idx))
-# print('legal hex: ', hex(idx))
-map = get_words_map()
-idx1 = map['romance']
-idx2 = map['lion']
-idx3 = map['vault']
-idx = idx1 ^ idx2 ^ idx3
-print('idx: ', idx)
-print('hex: ', hex(idx))
-print('word: ', get_words()[idx])
+# Generate a 24 word mnemonic (Seed MASTER)
+long_mnemonic = generate_seed(24)
+long_mnemonic_str = " ".join(long_mnemonic)
+print("Generated 24-word mnemonic:", long_mnemonic_str)
+# Check if the mnemonic is valid
+mnemo = Mnemonic()
+is_valid = mnemo.check(long_mnemonic_str)
+print("Is the mnemonic valid?", is_valid)
 
-print('xor: ', xor_words(['romance', 'lion', 'vault']))
+# Generate a 12 word mnemonic (Seed A)
+short_mnemonic = generate_seed(12)
+short_mnemonic_str = " ".join(short_mnemonic)
+print("Generated 12-word mnemonic:", short_mnemonic_str)
+# Check if the mnemonic is valid
+is_valid = mnemo.check(short_mnemonic_str)
+print("Is the mnemonic valid?", is_valid)
 
-seed = generate_seed(12)
-print('seed words: ', seed)
-print('seed check: ', Mnemonic().check(seed))
-print('seed: ', Mnemonic().to_seed(seed))
-random_words = " ".join(secrets.choice(get_words()) for _ in range(24))
-print('random words: ', random_words)
-print('seed check: ', Mnemonic().check(random_words))
-# print('seed: ', Mnemonic().to_seed(
-#     "".join(secrets.choice(get_words()) for _ in range(24))))
+# XOR a new short mnemonic (Seed B)
+# len of long mnemonic
+master_mnemonic = long_mnemonic[-len(short_mnemonic):]
+master_mnemonic_str = " ".join(master_mnemonic)
+print("Master mnemonic for XOR:", master_mnemonic_str)
+
+# Check if the master mnemonic is valid
+is_valid = mnemo.check(master_mnemonic_str)
+print("Is the master mnemonic valid?", is_valid)
+
+xor_result = []
+for idx, word in enumerate(master_mnemonic):
+    xor_result.append(xor_words([word, short_mnemonic[idx]]))
+
+xor_result_str = " ".join(xor_result)
+print("XOR result:", xor_result_str)
+
+# Check if the XOR result is valid
+is_valid = mnemo.check(xor_result_str)
+print("Is the XOR result valid?", is_valid)
+# On average, the XOR result will be invalid.
+# However, there exists a short mnemonic that can be XORed with the master mnemonic to produce a valid mnemonic.
+
+
+# # idx = get_words_map()['zoo']
+# # print('legal idx: ', idx)
+# # print('legal bin: ', bin(idx))
+# # print('legal hex: ', hex(idx))
+# map = get_words_map()
+# idx1 = map['romance']
+# idx2 = map['lion']
+# idx3 = map['vault']
+# idx = idx1 ^ idx2 ^ idx3
+# print('idx: ', idx)
+# print('hex: ', hex(idx))
+# print('word: ', get_words()[idx])
+
+# print('xor: ', xor_words(['romance', 'lion', 'vault']))
+
+# seed = generate_seed(12)
+# print('seed words: ', seed)
+# print('seed check: ', Mnemonic().check(seed))
+# print('seed: ', Mnemonic().to_seed(seed))
+# random_words = " ".join(secrets.choice(get_words()) for _ in range(24))
+# print('random words: ', random_words)
+# print('seed check: ', Mnemonic().check(random_words))
+# # print('seed: ', Mnemonic().to_seed(
+# #     "".join(secrets.choice(get_words()) for _ in range(24))))
