@@ -64,7 +64,7 @@ def xor_words(words: list[str]) -> str:
     idx = 0
     for word in words:
         idx ^= map[word]
-    return map[idx]
+    return get_words()[idx]
 
 
 # idx = get_words_map()['zoo']
@@ -79,6 +79,8 @@ idx = idx1 ^ idx2 ^ idx3
 print('idx: ', idx)
 print('hex: ', hex(idx))
 print('word: ', get_words()[idx])
+
+print('xor: ', xor_words(['romance', 'lion', 'vault']))
 
 seed = generate_seed(12)
 print('seed words: ', seed)
