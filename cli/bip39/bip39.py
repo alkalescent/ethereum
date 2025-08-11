@@ -51,10 +51,9 @@ class BIP39:
         """Make a dictionary for the BIP39 words."""
         return {word: index for index, word in enumerate(words)}
 
-    def generate_seed(num_words) -> list[str]:
+    def generate(self, num_words) -> list[str]:
         """Generate a random seed of BIP39 words."""
-        mnemo = Mnemonic()
-        words = mnemo.generate(num_words * 32 // 3)
+        words = self.mnemo.generate(num_words * 32 // 3)
         return words.split()
 
     def xor_words(self, words: list[str]) -> str:
