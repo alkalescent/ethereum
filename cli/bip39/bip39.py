@@ -45,9 +45,24 @@ class BIP39:
         with open(self.FILE, "r") as file:
             return file.read().splitlines()
 
-    def generate(self, num_words: int) -> str:
-        """Generate a mnemonic with the specified number of words."""
-        return self.mnemo.generate(num_words)
+    def get_words_map(self) -> dict[str, int]:
+        """Get a dictionary for the BIP39 words."""
+        words = self.get_words()
+        return {word: index for index, word in enumerate(words)}
+
+    def generate_seed(num_words) -> list[str]:
+        """Generate a random seed of BIP39 words."""
+        mnemo = Mnemonic()
+        words = mnemo.generate(num_words * 32 // 3)
+        return words.split()
+
+    def xor_words(self, words: list[str]) -> str:
+        """XOR a list of BIP39 words to get a single word."""
+        map = self.get_words_map()
+        idx = 0
+        for word in words:
+            idx ^= map[word]
+        return self.get_words()[idx]
 
     def check(self, mnemonic: str) -> bool:
         """Check if the mnemonic is valid."""
@@ -58,30 +73,9 @@ class BIP39:
         return self.mnemo.to_entropy(mnemonic)
 
 
-def get_words_map() -> dict[str, int]:
-    """Get a dictionary for the BIP39 words."""
-    words = get_words()
-    return {word: index for index, word in enumerate(words)}
-
-
-def generate_seed(num_words) -> list[str]:
-    """Generate a random seed of BIP39 words."""
-    mnemo = Mnemonic()
-    words = mnemo.generate(num_words * 32 // 3)
-    return words.split()
-
-
-def xor_words(words: list[str]) -> str:
-    """XOR a list of BIP39 words to get a single word."""
-    map = get_words_map()
-    idx = 0
-    for word in words:
-        idx ^= map[word]
-    return get_words()[idx]
-
-
+bip39 = BIP39()
 # Generate a 24 word mnemonic (Seed MASTER)
-long_mnemonic = generate_seed(24)
+long_mnemonic = bip39.generate_seed(24)
 long_mnemonic_str = " ".join(long_mnemonic)
 print("Generated 24-word mnemonic:", long_mnemonic_str)
 # # Check if the mnemonic is valid
