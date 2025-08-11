@@ -17,7 +17,7 @@ class BIP39:
         self.FILE = FILE
         self.mnemo = Mnemonic()
 
-    def download_words(self) -> None:
+    def _download(self) -> None:
         """Download the BIP39 words file."""
         url = "https://raw.githubusercontent.com/bitcoin/bips/refs/heads/master/bip-0039/english.txt"
         response = requests.get(url)
@@ -25,23 +25,23 @@ class BIP39:
             with open(self.FILE, "w") as file:
                 file.write(response.content.decode())
 
-    def check_words(self) -> bool:
+    def _check(self) -> bool:
         """Check if the words are present."""
         with open(self.FILE, "r") as file:
             words = file.read().splitlines()
             return len(words) == 2048 and all(len(word) > 0 for word in words)
 
-    def ensure_words(self) -> None:
+    def _ensure(self) -> None:
         """Ensure the words are present, downloading it if necessary."""
-        if not (os.path.exists(self.FILE) and self.check_words()):
-            self.download_words()
-            if not self.check_words():
+        if not (os.path.exists(self.FILE) and self._check()):
+            self._download()
+            if not self._check():
                 raise RuntimeError(
                     "Failed to download or validate the BIP39 words.")
 
-    def get_words(self) -> list[str]:
+    def get(self) -> list[str]:
         """Get the BIP39 words."""
-        self.ensure_words()
+        self.ensure()
         with open(self.FILE, "r") as file:
             return file.read().splitlines()
 
@@ -64,13 +64,13 @@ class BIP39:
             idx ^= map[word]
         return self.get_words()[idx]
 
-    def check(self, mnemonic: str) -> bool:
-        """Check if the mnemonic is valid."""
-        return self.mnemo.check(mnemonic)
+    # def check(self, mnemonic: str) -> bool:
+    #     """Check if the mnemonic is valid."""
+    #     return self.mnemo.check(mnemonic)
 
-    def to_entropy(self, mnemonic: str) -> bytes:
-        """Convert a mnemonic to its entropy."""
-        return self.mnemo.to_entropy(mnemonic)
+    # def to_entropy(self, mnemonic: str) -> bytes:
+    #     """Convert a mnemonic to its entropy."""
+    #     return self.mnemo.to_entropy(mnemonic)
 
 
 bip39 = BIP39()
