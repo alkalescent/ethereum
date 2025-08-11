@@ -16,6 +16,8 @@ class BIP39:
         FILE = os.path.join(DIR, FILENAME)
         self.FILE = FILE
         self.mnemo = Mnemonic()
+        self.words = self._get()
+        self.map = self._make(self.words)
 
     def _download(self) -> None:
         """Download the BIP39 words file."""
@@ -39,15 +41,14 @@ class BIP39:
                 raise RuntimeError(
                     "Failed to download or validate the BIP39 words.")
 
-    def get(self) -> list[str]:
+    def _get(self) -> list[str]:
         """Get the BIP39 words."""
-        self.ensure()
+        self._ensure()
         with open(self.FILE, "r") as file:
             return file.read().splitlines()
 
-    def get_words_map(self) -> dict[str, int]:
-        """Get a dictionary for the BIP39 words."""
-        words = self.get_words()
+    def _make(self, words) -> dict[str, int]:
+        """Make a dictionary for the BIP39 words."""
         return {word: index for index, word in enumerate(words)}
 
     def generate_seed(num_words) -> list[str]:
