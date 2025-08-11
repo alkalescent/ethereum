@@ -1,5 +1,4 @@
 import os
-import secrets
 import requests
 from mnemonic import Mnemonic
 # def get_seed(filename: str) -> bytes:
@@ -8,41 +7,55 @@ from mnemonic import Mnemonic
 #         return f.read()
 
 
-DIR = os.path.dirname(os.path.abspath(__file__))
-FILENAME = "words.txt"
-FILE = os.path.join(DIR, FILENAME)
+class BIP39:
+    """BIP39 class to handle mnemonic generation and validation."""
 
+    def __init__(self):
+        DIR = os.path.dirname(os.path.abspath(__file__))
+        FILENAME = "words.txt"
+        FILE = os.path.join(DIR, FILENAME)
+        self.FILE = FILE
+        self.mnemo = Mnemonic()
 
-def download_words() -> None:
-    """Download the BIP39 words file."""
-    url = "https://raw.githubusercontent.com/bitcoin/bips/refs/heads/master/bip-0039/english.txt"
-    response = requests.get(url)
-    if response.ok:
-        with open(FILE, "w") as file:
-            file.write(response.content.decode())
+    def download_words(self) -> None:
+        """Download the BIP39 words file."""
+        url = "https://raw.githubusercontent.com/bitcoin/bips/refs/heads/master/bip-0039/english.txt"
+        response = requests.get(url)
+        if response.ok:
+            with open(self.FILE, "w") as file:
+                file.write(response.content.decode())
 
+    def check_words(self) -> bool:
+        """Check if the words are present."""
+        with open(self.FILE, "r") as file:
+            words = file.read().splitlines()
+            return len(words) == 2048 and all(len(word) > 0 for word in words)
 
-def check_words() -> bool:
-    """Check if the words is present."""
-    with open(FILE, "r") as file:
-        words = file.read().splitlines()
-        return len(words) == 2048 and all(len(word) > 0 for word in words)
+    def ensure_words(self) -> None:
+        """Ensure the words are present, downloading it if necessary."""
+        if not (os.path.exists(self.FILE) and self.check_words()):
+            self.download_words()
+            if not self.check_words():
+                raise RuntimeError(
+                    "Failed to download or validate the BIP39 words.")
 
+    def get_words(self) -> list[str]:
+        """Get the BIP39 words."""
+        self.ensure_words()
+        with open(self.FILE, "r") as file:
+            return file.read().splitlines()
 
-def ensure_words() -> None:
-    """Ensure the words is present, downloading it if necessary."""
-    if not os.path.exists(FILE) or not check_words():
-        download_words()
-        if not check_words():
-            raise RuntimeError(
-                "Failed to download or validate the BIP39 words.")
+    def generate(self, num_words: int) -> str:
+        """Generate a mnemonic with the specified number of words."""
+        return self.mnemo.generate(num_words)
 
+    def check(self, mnemonic: str) -> bool:
+        """Check if the mnemonic is valid."""
+        return self.mnemo.check(mnemonic)
 
-def get_words() -> list[str]:
-    """Get the BIP39 words."""
-    ensure_words()
-    with open(FILE, "r") as file:
-        return file.read().splitlines()
+    def to_entropy(self, mnemonic: str) -> bytes:
+        """Convert a mnemonic to its entropy."""
+        return self.mnemo.to_entropy(mnemonic)
 
 
 def get_words_map() -> dict[str, int]:
