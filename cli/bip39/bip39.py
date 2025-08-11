@@ -56,13 +56,12 @@ class BIP39:
         words = self.mnemo.generate(num_words * 32 // 3)
         return words.split()
 
-    def xor_words(self, words: list[str]) -> str:
+    def xor(self, words: list[str]) -> str:
         """XOR a list of BIP39 words to get a single word."""
-        map = self.get_words_map()
         idx = 0
         for word in words:
-            idx ^= map[word]
-        return self.get_words()[idx]
+            idx ^= self.map[word]
+        return self.words[idx]
 
     # def check(self, mnemonic: str) -> bool:
     #     """Check if the mnemonic is valid."""
