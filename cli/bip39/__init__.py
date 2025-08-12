@@ -69,15 +69,15 @@ class BIP39:
         entropy = b''.join([self.mnemo.to_entropy(mnemo) for mnemo in mnemos])
         mnemo = self.mnemo.to_mnemonic(entropy)
         if not self.mnemo.check(mnemo):
-            raise ValueError("Invalid BIP39 seed after reconstruction.")
+            raise ValueError("Invalid BIP39 mnemo after reconstruction.")
         return mnemo
 
     def deconstruct(self, mnemo: str, num_parts: int = 2) -> list[str]:
         """Deconstruct a mnemonic into its components."""
         # Check if the mnemo is valid
         if not self.mnemo.check(mnemo):
-            raise ValueError("Invalid BIP39 seed.")
-        # Convert the seed to entropy
+            raise ValueError("Invalid BIP39 mnemo.")
+        # Convert the mnemo to entropy
         entropy = self.mnemo.to_entropy(mnemo)
         # Split the entropy into num_parts
         size = len(entropy) // num_parts
@@ -88,15 +88,15 @@ class BIP39:
             raise ValueError("Invalid BIP39 mnemonics after deconstruction.")
         return mnemos
 
-    def eth(self, seed: str) -> HDWallet:
+    def eth(self, mnemo: str) -> HDWallet:
         return HDWallet(
             symbol=ETH,
             cryptocurrency=EthereumMainnet
-        ).from_mnemonic(seed).p2pkh_address()
+        ).from_mnemonic(mnemo).p2pkh_address()
 
 
 bip39 = BIP39()
 # Generate a 24 word mnemonic
-seed = bip39.generate(24)
+mnemo = bip39.generate(24)
 # Check that the reconstruction is correct
-assert seed == bip39.reconstruct(bip39.deconstruct(seed))
+assert mnemo == bip39.reconstruct(bip39.deconstruct(mnemo))
