@@ -81,16 +81,9 @@ class BIP39:
         entropy = self.mnemo.to_entropy(mnemo)
         # Split the entropy into num_parts
         size = len(entropy) // num_parts
-        entropies = [entropy[i*size:(i+1)*size] for i in range(num_parts-1)]
-        entropies.append(entropy[(num_parts-1)*size:])
-        # one = entropy[:half]
-        # two = entropy[half:]
-        # Convert each part back to a mnemonic
-        # seed_one = self.mnemo.to_mnemonic(one)
-        # seed_two = self.mnemo.to_mnemonic(two)
+        entropies = [entropy[i*size:(i+1)*size] for i in range(num_parts)]
         mnemos = [self.mnemo.to_mnemonic(ent) for ent in entropies]
         # Check if the mnemonics are valid
-        # if not (self.mnemo.check(seed_one) and self.mnemo.check(seed_two)):
         if not all(self.mnemo.check(mnemo) for mnemo in mnemos):
             raise ValueError("Invalid BIP39 mnemonics after deconstruction.")
         return mnemos
