@@ -1,10 +1,9 @@
 import os
 import requests
+from hdwallet import HDWallet
+from hdwallet.symbols import ETH
+from hdwallet.cryptocurrencies import EthereumMainnet
 from mnemonic import Mnemonic
-# def get_seed(filename: str) -> bytes:
-#     """Get the seed from a file."""
-#     with open(filename, "rb") as f:
-#         return f.read()
 
 
 class BIP39:
@@ -93,6 +92,12 @@ class BIP39:
         if not (self.mnemo.check(seed_one) and self.mnemo.check(seed_two)):
             raise ValueError("Invalid BIP39 mnemonics after deconstruction.")
         return seed_one, seed_two
+
+    def eth(self, seed: str) -> HDWallet:
+        return HDWallet(
+            symbol=ETH,
+            cryptocurrency=EthereumMainnet
+        ).from_mnemonic(seed).p2pkh_address()
 
 
 bip39 = BIP39()
