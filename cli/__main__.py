@@ -14,18 +14,6 @@ class CLI:
         with open(filename, "r") as f:
             return f.read()
 
-    # def generate_mnemonic(self, num_words: int) -> str:
-    #     """Generate a BIP39 mnemonic with the specified number of words."""
-    #     return self.bip39.generate(num_words)
-
-    # def validate_mnemonic(self, mnemonic: str) -> bool:
-    #     """Validate a given BIP39 mnemonic."""
-    #     return self.bip39.validate(mnemonic)
-
-    # def reconstruct_mnemonic(self, seed_one: str, seed_two: str) -> str:
-    #     """Reconstruct a BIP39 mnemonic from two parts."""
-    #     return self.bip39.reconstruct(seed_one, seed_two)
-
 
 cli = CLI()
 mnemo = cli.get_mnemo("seed.txt")
