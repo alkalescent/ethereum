@@ -64,17 +64,18 @@ class BIP39:
             idx ^= self.map[word]
         return self.words[idx]
 
-    def reconstruct(self, seed_one: str, seed_two: str) -> str:
+    def reconstruct(self, mnemos: list[str]) -> str:
         """Reconstruct a seed from its components."""
-        one = self.mnemo.to_entropy(seed_one)
-        two = self.mnemo.to_entropy(seed_two)
-        entropy = one + two
-        seed = self.mnemo.to_mnemonic(entropy)
-        if not self.mnemo.check(seed):
+        entropy = b''.join([self.mnemo.to_entropy(mnemo) for mnemo in mnemos])
+        # one = self.mnemo.to_entropy(seed_one)
+        # two = self.mnemo.to_entropy(seed_two)
+        # entropy = one + two
+        mnemo = self.mnemo.to_mnemonic(entropy)
+        if not self.mnemo.check(mnemo):
             raise ValueError("Invalid BIP39 seed after reconstruction.")
-        return seed
+        return mnemo
 
-    def deconstruct(self, seed: str) -> tuple[str, str]:
+    def deconstruct(self, seed: str) -> list[str]:
         """Deconstruct a seed into its components."""
         # Check if the seed is valid
         if not self.mnemo.check(seed):
@@ -91,7 +92,7 @@ class BIP39:
         # Check if the mnemonics are valid
         if not (self.mnemo.check(seed_one) and self.mnemo.check(seed_two)):
             raise ValueError("Invalid BIP39 mnemonics after deconstruction.")
-        return seed_one, seed_two
+        return [seed_one, seed_two]
 
     def eth(self, seed: str) -> HDWallet:
         return HDWallet(
@@ -104,4 +105,4 @@ bip39 = BIP39()
 # Generate a 24 word mnemonic
 seed = bip39.generate(24)
 # Check that the reconstruction is correct
-assert seed == bip39.reconstruct(*bip39.deconstruct(seed))
+assert seed == bip39.reconstruct(bip39.deconstruct(seed))

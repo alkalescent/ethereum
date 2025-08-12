@@ -43,6 +43,6 @@ print("SLIP39 Shares:", slip_two)
 bip_two_reconstructed = cli.slip39.reconstruct(slip_two[0], slip_two[1])
 print("Reconstructed BIP39:", bip_two_reconstructed)
 seed_reconstructed = cli.bip39.reconstruct(
-    bip_one_reconstructed, bip_two_reconstructed)
+    [bip_one_reconstructed, bip_two_reconstructed])
 print("Reconstructed Mnemonic:", seed_reconstructed)
 print("Match:", seed == seed_reconstructed)
