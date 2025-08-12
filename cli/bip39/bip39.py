@@ -56,8 +56,10 @@ class BIP39:
         words = self.mnemo.generate(num_words * 32 // 3)
         return words
 
-    def xor(self, words: list[str]) -> str:
+    def xor(self, words: str) -> str:
         """XOR a list of BIP39 words to get a single word."""
+        if isinstance(words, str):
+            words = words.split()
         idx = 0
         for word in words:
             idx ^= self.map[word]
