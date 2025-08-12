@@ -63,8 +63,15 @@ class BIP39:
             idx ^= self.map[word]
         return self.words[idx]
 
-    def reconstruct() -> None:
-        pass
+    def reconstruct(seed_one, seed_two) -> None:
+        """Reconstruct a seed from its components."""
+        one = mnemo.to_entropy(seed_one)
+        two = mnemo.to_entropy(seed_two)
+        entropy = one + two
+        seed = mnemo.to_mnemonic(entropy)
+        if not mnemo.check(seed):
+            raise ValueError("Invalid BIP39 seed after reconstruction.")
+        return seed
 
     def deconstruct(self, seed) -> None:
         """Deconstruct a seed into its components."""
