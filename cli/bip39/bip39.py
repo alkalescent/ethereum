@@ -75,12 +75,16 @@ class BIP39:
         # Convert the seed to entropy
         entropy = self.mnemo.to_entropy(seed_str)
         # Split the entropy into two parts
-        ent_len = len(entropy) // 2
-        ent_one = entropy[:half]
-        ent_two = entropy[half:]
+        half = len(entropy) // 2
+        one = entropy[:half]
+        two = entropy[half:]
         # Convert each part back to a mnemonic
         seed_one = self.mnemo.to_mnemonic(one)
         seed_two = self.mnemo.to_mnemonic(two)
+        # Check if the mnemonics are valid
+        if not (self.mnemo.check(seed_one) and self.mnemo.check(seed_two)):
+            raise ValueError("Invalid BIP39 mnemonics after deconstruction.")
+        return seed_one, seed_two
 
     # def check(self, mnemonic: str) -> bool:
     #     """Check if the mnemonic is valid."""
