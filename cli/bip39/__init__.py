@@ -67,9 +67,6 @@ class BIP39:
     def reconstruct(self, mnemos: list[str]) -> str:
         """Reconstruct a seed from its components."""
         entropy = b''.join([self.mnemo.to_entropy(mnemo) for mnemo in mnemos])
-        # one = self.mnemo.to_entropy(seed_one)
-        # two = self.mnemo.to_entropy(seed_two)
-        # entropy = one + two
         mnemo = self.mnemo.to_mnemonic(entropy)
         if not self.mnemo.check(mnemo):
             raise ValueError("Invalid BIP39 seed after reconstruction.")
