@@ -1,6 +1,5 @@
-from hdwallet import HDWallet
-from hdwallet.symbols import ETH
-from bip39 import BIP39
+from .bip39 import BIP39
+from .slip39 import SLIP39
 
 
 class CLI:
@@ -8,6 +7,7 @@ class CLI:
 
     def __init__(self):
         self.bip39 = BIP39()
+        self.slip39 = SLIP39()
 
     def get_seed(self, filename: str) -> bytes:
         """Get the seed from a file."""
@@ -34,3 +34,7 @@ eth = cli.bip39.eth(seed)
 print("Eth Addr:", eth)
 deconstructed = cli.bip39.deconstruct(seed)
 print("Deconstructed:", deconstructed)
+shares = cli.slip39.deconstruct(cli.bip39.mnemo.to_seed(deconstructed[0]))
+print("SLIP39 Shares:", shares)
+for share in shares[0]:
+    print("Share length:", len(share.split()))

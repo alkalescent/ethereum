@@ -6,17 +6,12 @@ class SLIP39:
 
     def __init__(self):
         # self.mnemo = slip39
-
-    def generate(self, num_words: int) -> list[str]:
-        """Generate a random SLIP39 seed of words."""
-        return self.mnemo.generate(num_words)
+        pass
 
     def deconstruct(self, seed: str) -> tuple[str, str]:
-        """Deconstruct a seed into its components."""
-        if not self.mnemo.check(seed):
-            raise ValueError("Invalid SLIP39 seed.")
-        return self.mnemo.deconstruct(seed)
+        """Deconstruct a seed into its shares."""
+        return slip39.api.mnemonics(1, [(2, 3)], seed)  # create or mnemonics
 
     def reconstruct(self, seed_one: str, seed_two: str) -> str:
-        """Reconstruct the original SLIP39 seed from two parts."""
+        """Reconstruct multiple shares into a seed."""
         return self.mnemo.reconstruct(seed_one, seed_two)
