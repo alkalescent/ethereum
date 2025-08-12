@@ -63,6 +63,25 @@ class BIP39:
             idx ^= self.map[word]
         return self.words[idx]
 
+    def reconstruct() -> None:
+        pass
+
+    def deconstruct(self, seed) -> None:
+        """Deconstruct a seed into its components."""
+        seed_str = " ".join(seed)
+        # Check if the seed is valid
+        if not self.mnemo.check(seed_str):
+            raise ValueError("Invalid BIP39 seed.")
+        # Convert the seed to entropy
+        entropy = self.mnemo.to_entropy(seed_str)
+        # Split the entropy into two parts
+        ent_len = len(entropy) // 2
+        ent_one = entropy[:half]
+        ent_two = entropy[half:]
+        # Convert each part back to a mnemonic
+        seed_one = self.mnemo.to_mnemonic(one)
+        seed_two = self.mnemo.to_mnemonic(two)
+
     # def check(self, mnemonic: str) -> bool:
     #     """Check if the mnemonic is valid."""
     #     return self.mnemo.check(mnemonic)
@@ -74,7 +93,7 @@ class BIP39:
 
 bip39 = BIP39()
 # Generate a 24 word mnemonic (Seed MASTER)
-long_mnemonic = bip39.generate_seed(24)
+long_mnemonic = bip39.generate(24)
 long_mnemonic_str = " ".join(long_mnemonic)
 print("Generated 24-word mnemonic:", long_mnemonic_str)
 # # Check if the mnemonic is valid
