@@ -54,7 +54,7 @@ class BIP39:
     def generate(self, num_words: int) -> list[str]:
         """Generate a random seed of BIP39 words."""
         words = self.mnemo.generate(num_words * 32 // 3)
-        return words.split()
+        return words
 
     def xor(self, words: list[str]) -> str:
         """XOR a list of BIP39 words to get a single word."""
@@ -75,12 +75,11 @@ class BIP39:
 
     def deconstruct(self, seed: str) -> tuple[str, str]:
         """Deconstruct a seed into its components."""
-        seed_str = " ".join(seed)
         # Check if the seed is valid
-        if not self.mnemo.check(seed_str):
+        if not self.mnemo.check(seed):
             raise ValueError("Invalid BIP39 seed.")
         # Convert the seed to entropy
-        entropy = self.mnemo.to_entropy(seed_str)
+        entropy = self.mnemo.to_entropy(seed)
         # Split the entropy into two parts
         half = len(entropy) // 2
         one = entropy[:half]
@@ -93,19 +92,11 @@ class BIP39:
             raise ValueError("Invalid BIP39 mnemonics after deconstruction.")
         return seed_one, seed_two
 
-    # def check(self, mnemonic: str) -> bool:
-    #     """Check if the mnemonic is valid."""
-    #     return self.mnemo.check(mnemonic)
-
-    # def to_entropy(self, mnemonic: str) -> bytes:
-    #     """Convert a mnemonic to its entropy."""
-    #     return self.mnemo.to_entropy(mnemonic)
-
 
 bip39 = BIP39()
 # Generate a 24 word mnemonic
 seed = bip39.generate(24)
-print("Generated 24-word seed: ", " ".join(seed))
+print("Generated 24-word seed: ", seed)
 # Split it into two 12 word mnemonics
 seed_one, seed_two = bip39.deconstruct(seed)
 print("Deconstructed into two 12-word seeds:")
@@ -114,5 +105,4 @@ print("Seed two: ", seed_two)
 # Reconstruct the original 24 word mnemonic
 print("Reconstructed seed: ", bip39.reconstruct(seed_one, seed_two))
 # Check that the reconstruction is correct
-print("hello: ", bip39.reconstruct(*bip39.deconstruct(seed)))
-assert " ".join(seed) == bip39.reconstruct(*bip39.deconstruct(seed))
+assert seed == bip39.reconstruct(*bip39.deconstruct(seed))
