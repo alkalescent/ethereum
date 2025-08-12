@@ -51,7 +51,7 @@ class BIP39:
         return {word: index for index, word in enumerate(words)}
 
     def generate(self, num_words: int) -> list[str]:
-        """Generate a random seed of BIP39 words."""
+        """Generate a random mnemonic of BIP39 words."""
         words = self.mnemo.generate(num_words * 32 // 3)
         return words
 
@@ -65,31 +65,35 @@ class BIP39:
         return self.words[idx]
 
     def reconstruct(self, mnemos: list[str]) -> str:
-        """Reconstruct a seed from its components."""
+        """Reconstruct a mnemonic from its components."""
         entropy = b''.join([self.mnemo.to_entropy(mnemo) for mnemo in mnemos])
         mnemo = self.mnemo.to_mnemonic(entropy)
         if not self.mnemo.check(mnemo):
             raise ValueError("Invalid BIP39 seed after reconstruction.")
         return mnemo
 
-    def deconstruct(self, seed: str) -> list[str]:
-        """Deconstruct a seed into its components."""
-        # Check if the seed is valid
-        if not self.mnemo.check(seed):
+    def deconstruct(self, mnemo: str, num_parts: int = 2) -> list[str]:
+        """Deconstruct a mnemonic into its components."""
+        # Check if the mnemo is valid
+        if not self.mnemo.check(mnemo):
             raise ValueError("Invalid BIP39 seed.")
         # Convert the seed to entropy
-        entropy = self.mnemo.to_entropy(seed)
-        # Split the entropy into two parts
-        half = len(entropy) // 2
-        one = entropy[:half]
-        two = entropy[half:]
+        entropy = self.mnemo.to_entropy(mnemo)
+        # Split the entropy into num_parts
+        size = len(entropy) // num_parts
+        entropies = [entropy[i*size:(i+1)*size] for i in range(num_parts-1)]
+        entropies.append(entropy[(num_parts-1)*size:])
+        # one = entropy[:half]
+        # two = entropy[half:]
         # Convert each part back to a mnemonic
-        seed_one = self.mnemo.to_mnemonic(one)
-        seed_two = self.mnemo.to_mnemonic(two)
+        # seed_one = self.mnemo.to_mnemonic(one)
+        # seed_two = self.mnemo.to_mnemonic(two)
+        mnemos = [self.mnemo.to_mnemonic(ent) for ent in entropies]
         # Check if the mnemonics are valid
-        if not (self.mnemo.check(seed_one) and self.mnemo.check(seed_two)):
+        # if not (self.mnemo.check(seed_one) and self.mnemo.check(seed_two)):
+        if not all(self.mnemo.check(mnemo) for mnemo in mnemos):
             raise ValueError("Invalid BIP39 mnemonics after deconstruction.")
-        return [seed_one, seed_two]
+        return mnemos
 
     def eth(self, seed: str) -> HDWallet:
         return HDWallet(
