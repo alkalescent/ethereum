@@ -98,13 +98,5 @@ class BIP39:
 bip39 = BIP39()
 # Generate a 24 word mnemonic
 seed = bip39.generate(24)
-print("Generated 24-word seed: ", seed)
-# Split it into two 12 word mnemonics
-seed_one, seed_two = bip39.deconstruct(seed)
-print("Deconstructed into two 12-word seeds:")
-print("Seed one: ", seed_one)
-print("Seed two: ", seed_two)
-# Reconstruct the original 24 word mnemonic
-print("Reconstructed seed: ", bip39.reconstruct(seed_one, seed_two))
 # Check that the reconstruction is correct
 assert seed == bip39.reconstruct(*bip39.deconstruct(seed))
