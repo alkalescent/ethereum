@@ -4,6 +4,7 @@ from hdwallet import HDWallet
 from hdwallet.symbols import ETH
 from hdwallet.cryptocurrencies import EthereumMainnet
 from mnemonic import Mnemonic
+import slip39
 
 
 class BIP39:
@@ -22,7 +23,10 @@ class BIP39:
 
     def _download(self) -> None:
         """Download the BIP39 words file."""
-        url = "https://raw.githubusercontent.com/bitcoin/bips/refs/heads/master/bip-0039/english.txt"
+        url = (
+            "https://raw.githubusercontent.com/bitcoin/bips/refs/heads/master/"
+            "bip-0039/english.txt"
+        )
         response = requests.get(url)
         if response.ok:
             with open(self.FILE, "w") as file:
@@ -97,8 +101,38 @@ class BIP39:
         ).from_mnemonic(mnemo).p2pkh_address()
 
 
-bip39 = BIP39()
+class SLIP39:
+    """
+    SLIP39 implementation for generating and reconstructing
+    mnemonic phrases.
+    """
+
+    def __init__(self):
+        self.mnemo = slip39.recovery.Mnemonic()
+
+    def deconstruct(self, mnemo: str) -> tuple[str, str]:
+        """Deconstruct a mnemo into its shares."""
+        _, shares = slip39.api.create(
+            "LEDGER", 1, {"KEYS": (2, 3)}, mnemo, using_bip39=True
+        ).groups["KEYS"]
+        return shares
+
+    def reconstruct(self, shares: list[str]) -> str:
+        """Reconstruct multiple shares into a mnemo."""
+        entropy = slip39.recovery.recover(
+            shares, using_bip39=True, as_entropy=True)
+        mnemo = self.mnemo.to_mnemonic(entropy)
+        return mnemo
+
+
+b39 = BIP39()
 # Generate a 24 word mnemonic
-mnemo = bip39.generate(24)
+mnemo = b39.generate(24)
 # Check that the reconstruction is correct
-assert mnemo == bip39.reconstruct(bip39.deconstruct(mnemo))
+assert mnemo == b39.reconstruct(b39.deconstruct(mnemo))
+
+s39 = SLIP39()
+# Generate a 24 word mnemonic
+mnemo = s39.mnemo.generate(256)
+# Check that the reconstruction is correct
+assert mnemo == s39.reconstruct(s39.deconstruct(mnemo))

@@ -1,5 +1,4 @@
-from cli.bip39 import BIP39
-from cli.slip39 import SLIP39
+from cli.tools import BIP39, SLIP39
 
 
 class CLI:
