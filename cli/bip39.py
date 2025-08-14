@@ -15,8 +15,10 @@ class BIP39:
         FILE = os.path.join(DIR, FILENAME)
         self.FILE = FILE
         self.mnemo = Mnemonic()
-        self.words = self._get()
-        self.map = self._make(self.words)
+        # TODO: set env var for pyinstaller
+        # if not env var set, download words
+        # self.words = self._get()
+        # self.map = self._make(self.words)
 
     def _download(self) -> None:
         """Download the BIP39 words file."""

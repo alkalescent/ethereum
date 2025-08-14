@@ -34,3 +34,6 @@ mnemo_reconstructed = cli.bip39.reconstruct(
     [bip_one_reconstructed, bip_two_reconstructed])
 print("Reconstructed Mnemonic:", mnemo_reconstructed)
 print("Match:", mnemo == mnemo_reconstructed)
+
+# python3 -m PyInstaller --name cli --onefile --paths cli cli/__main__.py
+# ./dist/cli
