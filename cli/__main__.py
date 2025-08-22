@@ -1,3 +1,4 @@
+import typer
 from cli.tools import BIP39, SLIP39
 
 
