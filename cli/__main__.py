@@ -15,6 +15,35 @@ class CLI:
             return f.read()
 
 
+app = typer.Typer()
+cli = CLI()
+
+
+@app.command()
+def deconstruct(
+        _: str, mnemonic: str = "", standard: str = "slip39", filename: str = "seed.txt"):
+    if standard.upper() not in ["SLIP39", "BIP39"]:
+        print("Standard must be either 'SLIP39' or 'BIP39'")
+        raise typer.Exit(code=1)
+    if not mnemonic:
+        mnemonic = cli.get_mnemo(filename)
+    if not mnemonic:
+        print("Mnemonic is required")
+        raise typer.Exit(code=1)
+    bip_one, bip_two = cli.bip39.deconstruct(mnemonic)
+    if standard.upper() == "BIP39":
+        print("BIP39 Deconstructed:", bip_one, bip_two)
+        raise typer.Exit(code=0)
+    else:
+        slip_one = cli.slip39.deconstruct(bip_one)
+        slip_two = cli.slip39.deconstruct(bip_two)
+        print("SLIP39 Shares:", slip_one, slip_two)
+        raise typer.Exit(code=0)
+
+
+app()
+
+
 def main():
     cli = CLI()
     mnemo = cli.get_mnemo("seed.txt")
@@ -37,4 +66,4 @@ def main():
     print("Match:", mnemo == mnemo_reconstructed)
 
 
-typer.run(main)
+# typer.run(main)
