@@ -35,4 +35,5 @@ print("Reconstructed Mnemonic:", mnemo_reconstructed)
 print("Match:", mnemo == mnemo_reconstructed)
 
 # python3 -m PyInstaller --name cli --onefile --paths cli cli/__main__.py
+# python3 -m PyInstaller --name cli --onefile cli/__main__.py --add-data="/Users/suchak/Library/Python/3.9/lib/python/site-packages/shamir_mnemonic/wordlist.txt:./shamir_mnemonic"
 # ./dist/cli
