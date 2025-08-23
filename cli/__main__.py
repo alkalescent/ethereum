@@ -9,7 +9,7 @@ class CLI:
         self.bip39 = BIP39()
         self.slip39 = SLIP39()
 
-    def get_mnemo(self, filename: str) -> bytes:
+    def get_mnemo(self, filename: str) -> str:
         """Get the mnemo from a file."""
         with open(filename, "r") as f:
             return f.read()
