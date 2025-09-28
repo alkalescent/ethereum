@@ -34,7 +34,7 @@ RUN python3 -m pip install -r requirements.txt
 RUN mkdir -p "${EXEC_DIR}"
 WORKDIR "${EXEC_DIR}"
 ENV PLATFORM_ARCH "linux-${ARCH}"
-ENV GETH_VERSION 1.16.2-dd1ebac1
+ENV GETH_VERSION 1.16.4-41714b49
 ENV GETH_ARCHIVE "geth-${PLATFORM_ARCH}-${GETH_VERSION}"
 RUN curl -LO "https://gethstore.blob.core.windows.net/builds/${GETH_ARCHIVE}.tar.gz"
 RUN tar -xvzf "${GETH_ARCHIVE}.tar.gz"
@@ -47,7 +47,7 @@ ENV PATH "${PATH}:${EXEC_DIR}"
 # Download prysm (consensus)
 RUN mkdir -p "${PRYSM_DIR}"
 WORKDIR "${PRYSM_DIR}"
-ENV PRYSM_VERSION v6.0.4
+ENV PRYSM_VERSION v6.1.0
 RUN if [ "$ARCH" = "amd64" ]; \
     then export PRYSM_PLATFORM_ARCH="modern-${PLATFORM_ARCH}"; \
     else export PRYSM_PLATFORM_ARCH="${PLATFORM_ARCH}"; \
