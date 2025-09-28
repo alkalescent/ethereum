@@ -44,8 +44,20 @@ def deconstruct(mnemonic: str = "", standard: str = "slip39", filename: str = "s
 
 
 @app.command()
-def reconstruct(mnemonic: str = "", standard: str = "slip39", filename: str = "seed.txt"):
+def reconstruct(mnemonic: list[str] = [], standard: str = "bip39", filename: str = "seed.txt"):
     cli.enforce_standard(standard)
+    if not mnemonic:
+        mnemonic = cli.get_mnemos(filename)
+    if not mnemonic:
+        print("Mnemonic is required")
+        raise typer.Exit(code=1)
+    if standard.upper() == "SLIP39":
+        reconstructed = cli.slip39.reconstruct(mnemonic)
+        print("Reconstructed SLIP39:", reconstructed)
+    else:
+        reconstructed = cli.bip39.reconstruct(mnemonic)
+        print("Reconstructed BIP39:", reconstructed)
+    raise typer.Exit(code=0)
 
 
 app()
