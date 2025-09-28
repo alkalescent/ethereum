@@ -106,6 +106,8 @@ class Node:
         args += [
             f'--checkpoint-state={state_filename}',
             f'--checkpoint-block={block_filename}',
+            "--checkpoint-sync-url=https://sync-mainnet.beaconcha.in",
+            "--genesis-beacon-api-url=https://sync-mainnet.beaconcha.in",
             f'--suggested-fee-recipient={ETH_ADDR}',
         ]
         cmd = ['beacon-chain'] + args
