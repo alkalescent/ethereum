@@ -118,7 +118,6 @@ class Node:
             '--accept-terms-of-use',
             # ENABLE THIS FOR MEV
             '--enable-builder',
-            '--attest-timely',
             f'--wallet-dir={self.prysm_wallet_dir}',
             f'--suggested-fee-recipient={ETH_ADDR}',
             f'--wallet-password-file={self.prysm_wallet_dir}/password.txt'
