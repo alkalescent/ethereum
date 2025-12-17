@@ -181,7 +181,7 @@ class Node:
         processes = []
         if VPN:
             def get_ip():
-                return requests.get('https://4.ident.me').text
+                return requests.get('https://4.tnedi.me').text
             start_ip = get_ip()
             processes.append({
                 'process': self.vpn(),
