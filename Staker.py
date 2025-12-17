@@ -82,6 +82,8 @@ class Node:
             '--blob-storage-layout=by-epoch',
             # alternatively http://127.0.0.1:18550
             '--http-mev-relay=http://localhost:18550',
+            # for Fusaka upgrade
+            '--disable-last-epoch-targets',
         ]
 
         prysm_dir = './consensus/prysm'
