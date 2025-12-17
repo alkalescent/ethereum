@@ -79,11 +79,11 @@ class Node:
         args = [
             '--accept-terms-of-use',
             f'--execution-endpoint={self.ipc_path}',
+            f'--suggested-fee-recipient={ETH_ADDR}',
             '--blob-storage-layout=by-epoch',
             # alternatively http://127.0.0.1:18550
             '--http-mev-relay=http://localhost:18550',
-            # for Fusaka upgrade
-            '--disable-last-epoch-targets',
+            '--enable-backfill',
         ]
 
         prysm_dir = './consensus/prysm'
@@ -110,7 +110,6 @@ class Node:
             f'--checkpoint-block={block_filename}',
             "--checkpoint-sync-url=https://sync-mainnet.beaconcha.in",
             "--genesis-beacon-api-url=https://sync-mainnet.beaconcha.in",
-            f'--suggested-fee-recipient={ETH_ADDR}',
         ]
         cmd = ['beacon-chain'] + args
         return self.run_cmd(cmd)
