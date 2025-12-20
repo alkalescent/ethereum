@@ -1,5 +1,0 @@
-requests
-mnemonic
-hdwallet
-slip39
-typer
