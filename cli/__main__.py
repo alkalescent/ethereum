@@ -26,7 +26,15 @@ cli = CLI()
 
 
 @app.command()
-def deconstruct(mnemonic: Annotated[str, typer.Option(show_default=True, help="The mnemonic to deconstruct")] = "", standard: str = "slip39", filename: str = "seed.txt", num_parts: int = 2, required: int = 2, total: int = 3):
+def deconstruct(
+        mnemonic: Annotated[str, typer.Option(
+            show_default=True, help="The mnemonic to deconstruct")] = "",
+        standard: str = "slip39",
+        filename: str = "seed.txt",
+        num_parts: int = 2,
+        required: int = 2,
+        total: int = 3
+):
     cli.enforce_standard(standard)
     if not mnemonic:
         mnemonic = cli.get_mnemos(filename)[0]
