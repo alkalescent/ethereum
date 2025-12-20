@@ -110,10 +110,10 @@ class SLIP39:
     def __init__(self):
         self.mnemo = slip39.recovery.Mnemonic()
 
-    def deconstruct(self, mnemo: str) -> tuple[str, str]:
+    def deconstruct(self, mnemo: str, required: int = 2, total: int = 3) -> tuple[str, str]:
         """Deconstruct a mnemo into its shares."""
         _, shares = slip39.api.create(
-            "LEDGER", 1, {"KEYS": (2, 3)}, mnemo, using_bip39=True
+            "LEDGER", 1, {"KEYS": (required, total)}, mnemo, using_bip39=True
         ).groups["KEYS"]
         return shares
 
