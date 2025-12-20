@@ -28,13 +28,16 @@ cli = CLI()
 @app.command()
 def deconstruct(
         mnemonic: Annotated[str, typer.Option(
-            help="The mnemonic to deconstruct")] = "",
+            help="The BIP39 mnemonic to deconstruct")] = "",
         standard: Annotated[str, typer.Option(
-            help="The deconstructed output format: 'BIP39' or 'SLIP39'")] = "BIP39",
+            help="The output format: 'BIP39' or 'SLIP39'")] = "BIP39",
         filename: str = "seed.txt",
-        num_parts: int = 2,
-        required: int = 2,
-        total: int = 3
+        split: Annotated[int, typer.Option(
+            help="Number of BIP39 parts to split the BIP39 mnemonic into (e.g. 2 12-word parts for a 24-word mnemonic)")] = 2,
+        required: Annotated[int, typer.Option(
+            help="Number of required shares for SLIP39 reconstruction (e.g. 2 of 3)")] = 2,
+        total: Annotated[int, typer.Option(
+            help="Number of total shares for SLIP39 reconstruction (e.g. 3 of 3)")] = 3
 ):
     cli.enforce_standard(standard)
     if not mnemonic:
@@ -42,7 +45,7 @@ def deconstruct(
     if not mnemonic:
         print("Mnemonic is required")
         raise typer.Exit(code=1)
-    bip_parts = cli.bip39.deconstruct(mnemonic, num_parts)
+    bip_parts = cli.bip39.deconstruct(mnemonic, split)
     if standard.upper() == "BIP39":
         print("BIP39 Deconstructed:", bip_parts)
         raise typer.Exit(code=0)

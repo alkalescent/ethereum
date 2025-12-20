@@ -78,16 +78,16 @@ class BIP39:
             raise ValueError("Invalid BIP39 mnemo after reconstruction.")
         return mnemo
 
-    def deconstruct(self, mnemo: str, num_parts: int = 2) -> list[str]:
+    def deconstruct(self, mnemo: str, split: int = 2) -> list[str]:
         """Deconstruct a mnemonic into its components."""
         # Check if the mnemo is valid
         if not self.mnemo.check(mnemo):
             raise ValueError("Invalid BIP39 mnemo.")
         # Convert the mnemo to entropy
         entropy = self.mnemo.to_entropy(mnemo)
-        # Split the entropy into num_parts
-        size = len(entropy) // num_parts
-        entropies = [entropy[i*size:(i+1)*size] for i in range(num_parts)]
+        # Split the entropy into split parts
+        size = len(entropy) // split
+        entropies = [entropy[i*size:(i+1)*size] for i in range(split)]
         mnemos = [self.mnemo.to_mnemonic(ent) for ent in entropies]
         # Check if the mnemonics are valid
         if not all(self.mnemo.check(mnemo) for mnemo in mnemos):
