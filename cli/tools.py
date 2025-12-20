@@ -3,7 +3,7 @@ import sys
 import requests
 from hdwallet import HDWallet
 from hdwallet.symbols import ETH
-from hdwallet.cryptocurrencies import EthereumMainnet
+from hdwallet.cryptocurrencies import ethereum
 from mnemonic import Mnemonic
 import slip39
 
@@ -97,7 +97,7 @@ class BIP39:
     def eth(self, mnemo: str) -> HDWallet:
         return HDWallet(
             symbol=ETH,
-            cryptocurrency=EthereumMainnet
+            cryptocurrency=ethereum
         ).from_mnemonic(mnemo).p2pkh_address()
 
 
