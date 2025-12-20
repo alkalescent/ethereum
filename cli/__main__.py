@@ -29,7 +29,8 @@ cli = CLI()
 def deconstruct(
         mnemonic: Annotated[str, typer.Option(
             show_default=True, help="The mnemonic to deconstruct")] = "",
-        standard: str = "slip39",
+        standard: Annotated[str, typer.Option(
+            show_default=True, help="The deconstructed output format: 'BIP39' or 'SLIP39'")] = "BIP39",
         filename: str = "seed.txt",
         num_parts: int = 2,
         required: int = 2,
