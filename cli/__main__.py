@@ -25,21 +25,20 @@ cli = CLI()
 
 
 @app.command()
-def deconstruct(mnemonic: str = "", standard: str = "slip39", filename: str = "seed.txt"):
+def deconstruct(mnemonic: str = "", standard: str = "slip39", filename: str = "seed.txt", num_parts: int = 2):
     cli.enforce_standard(standard)
     if not mnemonic:
         mnemonic = cli.get_mnemos(filename)[0]
     if not mnemonic:
         print("Mnemonic is required")
         raise typer.Exit(code=1)
-    bip_one, bip_two = cli.bip39.deconstruct(mnemonic)
+    bip_parts = cli.bip39.deconstruct(mnemonic, num_parts)
     if standard.upper() == "BIP39":
-        print("BIP39 Deconstructed:", bip_one, bip_two)
+        print("BIP39 Deconstructed:", bip_parts)
         raise typer.Exit(code=0)
     else:
-        slip_one = cli.slip39.deconstruct(bip_one)
-        slip_two = cli.slip39.deconstruct(bip_two)
-        print("SLIP39 Shares:", slip_one, slip_two)
+        slip_parts = [cli.slip39.deconstruct(part) for part in bip_parts]
+        print("SLIP39 Shares:", slip_parts)
         raise typer.Exit(code=0)
 
 
