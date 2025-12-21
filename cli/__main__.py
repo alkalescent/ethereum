@@ -28,9 +28,9 @@ cli = CLI()
 @app.command()
 def deconstruct(
         mnemonic: Annotated[str, typer.Option(
-            help="The BIP39 mnemonic to deconstruct")] = "",
+            help="BIP39 mnemonic to deconstruct")] = "",
         standard: Annotated[str, typer.Option(
-            help="The output format: 'BIP39' or 'SLIP39'")] = "SLIP39",
+            help="Output format: 'BIP39' or 'SLIP39'")] = "SLIP39",
         filename: Annotated[str, typer.Option(
             help="File containing the BIP39 mnemonic"
         )] = "seed.txt",
@@ -42,7 +42,7 @@ def deconstruct(
             help="Number of total shares for SLIP39 reconstruction (e.g. 3 of 3)")] = 3,
         # TODO: implement digits option
         digits: Annotated[bool, typer.Option(
-            help="Output SLIP39 shares with digits instead of words"
+            help="Output format: use digits instead of words"
         )] = False,
 ):
     cli.enforce_standard(standard)
@@ -65,21 +65,29 @@ def deconstruct(
 @app.command()
 # TODO: add annotations, add digits, fix default, fix reconstruction (only one part currently)
 def reconstruct(
-    mnemonic: list[str] = [],
-    standard: str = "bip39",
-    filename: str = "seed.txt"
+    shares: Annotated[list[str], typer.Option(
+        help="SLIP39 shares to reconstruct")] = [],
+    standard: Annotated[str, typer.Option(
+        help="Input format: 'BIP39' or 'SLIP39'")] = "SLIP39",
+    filename: Annotated[str, typer.Option(
+        help="File containing the SLIP39 shares (newline separated)"
+    )] = "seed.txt"
+    # split
+    # required
+    # total
+    # digits
 ):
     cli.enforce_standard(standard)
-    if not mnemonic:
-        mnemonic = cli.get_mnemos(filename)
-    if not mnemonic:
-        print("Mnemonic is required")
+    if not shares:
+        shares = cli.get_mnemos(filename)
+    if not shares:
+        print("Shares are required")
         raise typer.Exit(code=1)
     if standard.upper() == "SLIP39":
-        reconstructed = cli.slip39.reconstruct(mnemonic)
+        reconstructed = cli.slip39.reconstruct(shares)
         print("Reconstructed SLIP39:", reconstructed)
     else:
-        reconstructed = cli.bip39.reconstruct(mnemonic)
+        reconstructed = cli.bip39.reconstruct(shares)
         print("Reconstructed BIP39:", reconstructed)
     raise typer.Exit(code=0)
 
