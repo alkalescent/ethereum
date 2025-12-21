@@ -30,14 +30,20 @@ def deconstruct(
         mnemonic: Annotated[str, typer.Option(
             help="The BIP39 mnemonic to deconstruct")] = "",
         standard: Annotated[str, typer.Option(
-            help="The output format: 'BIP39' or 'SLIP39'")] = "BIP39",
-        filename: str = "seed.txt",
+            help="The output format: 'BIP39' or 'SLIP39'")] = "SLIP39",
+        filename: Annotated[str, typer.Option(
+            help="File containing the BIP39 mnemonic"
+        )] = "seed.txt",
         split: Annotated[int, typer.Option(
             help="Number of BIP39 parts to split the BIP39 mnemonic into (e.g. 2 12-word parts for a 24-word mnemonic)")] = 2,
         required: Annotated[int, typer.Option(
             help="Number of required shares for SLIP39 reconstruction (e.g. 2 of 3)")] = 2,
         total: Annotated[int, typer.Option(
-            help="Number of total shares for SLIP39 reconstruction (e.g. 3 of 3)")] = 3
+            help="Number of total shares for SLIP39 reconstruction (e.g. 3 of 3)")] = 3,
+        # TODO: implement digits option
+        digits: Annotated[bool, typer.Option(
+            help="Output SLIP39 shares with digits instead of words"
+        )] = False,
 ):
     cli.enforce_standard(standard)
     if not mnemonic:
@@ -57,7 +63,12 @@ def deconstruct(
 
 
 @app.command()
-def reconstruct(mnemonic: list[str] = [], standard: str = "bip39", filename: str = "seed.txt"):
+# TODO: add annotations, add digits, fix default, fix reconstruction (only one part currently)
+def reconstruct(
+    mnemonic: list[str] = [],
+    standard: str = "bip39",
+    filename: str = "seed.txt"
+):
     cli.enforce_standard(standard)
     if not mnemonic:
         mnemonic = cli.get_mnemos(filename)
@@ -74,6 +85,8 @@ def reconstruct(mnemonic: list[str] = [], standard: str = "bip39", filename: str
 
 
 app()
+
+# TODO: add tests
 
 
 def main():
