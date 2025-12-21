@@ -71,8 +71,10 @@ def reconstruct(
         help="Input format: 'BIP39' or 'SLIP39'")] = "SLIP39",
     filename: Annotated[str, typer.Option(
         help="File containing the SLIP39 shares (newline separated)"
-    )] = "seed.txt"
-    # split
+    )] = "seed.txt",
+    split: Annotated[int, typer.Option(
+        help="Number of SLIP39 share groups from which to reconstruct BIP39 mnemonic(s)"
+    )] = 2,
     # required
     # total
     # digits
