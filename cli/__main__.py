@@ -93,7 +93,7 @@ def reconstruct(
     if not shares:
         print("Shares are required")
         raise typer.Exit(code=1)
-
+    bip_map = {}
     if standard.upper() == "SLIP39":
         members = len(shares) // split
         groups = [shares[i:i + members]
@@ -102,8 +102,7 @@ def reconstruct(
         shares = []
         for group in groups:
             if digits:
-                # TODO:
-                pass
+                group = []  # TODO: list comprehension
             shares.append(cli.slip39.reconstruct(group))
     elif digits:
         # TODO:

@@ -13,14 +13,17 @@ class BIP39:
     """BIP39 class to handle mnemonic generation and validation."""
 
     def __init__(self):
-        DIR = os.path.dirname(os.path.abspath(__file__))
-        FILENAME = "words.txt"
-        FILE = os.path.join(DIR, FILENAME)
-        self.FILE = FILE
+        # DIR = os.path.dirname(os.path.abspath(__file__))
+        # FILENAME = "words.txt"
+        # FILE = os.path.join(DIR, FILENAME)
+        # self.FILE = FILE
         self.mnemo = Mnemonic()
-        if not hasattr(sys, '_MEIPASS'):
-            self.words = self._get()
-            self.map = self._make(self.words)
+        self.words = self.mnemo.wordlist
+        assert len(self.words) == 2048 and self.words == sorted(self.words)
+        self.map = {word: idx+1 for idx, word in enumerate(self.words)}
+        # if not hasattr(sys, '_MEIPASS'):
+        #     self.words = self._get()
+        #     self.map = self._make(self.words)
 
     def _download(self) -> None:
         """Download the BIP39 words file."""
@@ -110,7 +113,9 @@ class SLIP39:
 
     def __init__(self):
         self.mnemo = slip39.recovery.Mnemonic()
-        self.wordlist = WORDLIST
+        self.words = WORDLIST
+        assert len(self.words) == 1024 and self.words == sorted(self.words)
+        self.map = {word: idx+1 for idx, word in enumerate(self.words)}
 
     def deconstruct(self, mnemo: str, required: int = 2, total: int = 3) -> list[str]:
         """Deconstruct a mnemo into its shares."""
