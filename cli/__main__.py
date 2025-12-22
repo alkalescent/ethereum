@@ -98,8 +98,13 @@ def reconstruct(
         members = len(shares) // split
         groups = [shares[i:i + members]
                   for i in range(0, len(shares), members)]
+        if digits:
+            # TODO:
+            pass
         shares = [cli.slip39.reconstruct(group) for group in groups]
-
+    elif digits:
+        # TODO:
+        pass
     reconstructed = cli.bip39.reconstruct(shares)
     print("BIP39 Reconstructed:", reconstructed)
     raise typer.Exit(code=0)
