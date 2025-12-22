@@ -59,10 +59,7 @@ def deconstruct(
         for part in bip_parts:
             shares = cli.slip39.deconstruct(part, required, total)
             if digits:
-                assert cli.slip39.wordlist == sorted(cli.slip39.wordlist)
-                slip_map = {word: idx+1 for idx, word in enumerate(
-                    cli.slip39.wordlist)}
-                shares = [" ".join(str(slip_map[word])
+                shares = [" ".join(str(cli.slip39.map[word])
                                    for word in share.split()) for share in shares]
             total_shares.append(shares)
 
@@ -71,7 +68,6 @@ def deconstruct(
 
 
 @app.command()
-# TODO: implement digits
 def reconstruct(
     shares: Annotated[list[str], typer.Option(
         help="SLIP39 shares to reconstruct")] = [],
@@ -93,20 +89,19 @@ def reconstruct(
     if not shares:
         print("Shares are required")
         raise typer.Exit(code=1)
-    bip_map = {}
     if standard.upper() == "SLIP39":
         members = len(shares) // split
         groups = [shares[i:i + members]
                   for i in range(0, len(shares), members)]
-
         shares = []
         for group in groups:
             if digits:
-                group = []  # TODO: list comprehension
+                group = [" ".join(cli.slip39.words[int(idx)-1]
+                         for idx in member.split()) for member in group]
             shares.append(cli.slip39.reconstruct(group))
     elif digits:
-        # TODO:
-        pass
+        shares = [" ".join(cli.bip39.words[int(idx)-1]
+                           for idx in share.split()) for share in shares]
     reconstructed = cli.bip39.reconstruct(shares)
     print("BIP39 Reconstructed:", reconstructed)
     raise typer.Exit(code=0)

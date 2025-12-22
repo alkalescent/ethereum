@@ -1,6 +1,3 @@
-import os
-import sys
-import requests
 from hdwallet import HDWallet
 from hdwallet.symbols import ETH
 from hdwallet.cryptocurrencies import Ethereum
@@ -9,70 +6,21 @@ from shamir_mnemonic.wordlist import WORDLIST
 import slip39
 
 
-class BIP39:
-    """BIP39 class to handle mnemonic generation and validation."""
-
-    def __init__(self):
-        # DIR = os.path.dirname(os.path.abspath(__file__))
-        # FILENAME = "words.txt"
-        # FILE = os.path.join(DIR, FILENAME)
-        # self.FILE = FILE
-        self.mnemo = Mnemonic()
-        self.words = self.mnemo.wordlist
-        assert len(self.words) == 2048 and self.words == sorted(self.words)
-        self.map = {word: idx+1 for idx, word in enumerate(self.words)}
-        # if not hasattr(sys, '_MEIPASS'):
-        #     self.words = self._get()
-        #     self.map = self._make(self.words)
-
-    def _download(self) -> None:
-        """Download the BIP39 words file."""
-        url = (
-            "https://raw.githubusercontent.com/bitcoin/bips/refs/heads/master/"
-            "bip-0039/english.txt"
-        )
-        response = requests.get(url)
-        if response.ok:
-            with open(self.FILE, "w") as file:
-                file.write(response.content.decode())
-
-    def _check(self) -> bool:
-        """Check if the words are present."""
-        with open(self.FILE, "r") as file:
-            words = file.read().splitlines()
-            return len(words) == 2048 and all(len(word) > 0 for word in words)
-
-    def _ensure(self) -> None:
-        """Ensure the words are present, downloading it if necessary."""
-        if not (os.path.exists(self.FILE) and self._check()):
-            self._download()
-            if not self._check():
-                raise RuntimeError(
-                    "Failed to download or validate the BIP39 words.")
-
-    def _get(self) -> list[str]:
-        """Get the BIP39 words."""
-        self._ensure()
-        with open(self.FILE, "r") as file:
-            return file.read().splitlines()
-
-    def _make(self, words: list[str]) -> dict[str, int]:
-        """Make a dictionary for the BIP39 words."""
-        return {word: index for index, word in enumerate(words)}
-
+class IP39:
     def generate(self, num_words: int) -> list[str]:
         """Generate a random mnemonic of BIP39 words."""
         words = self.mnemo.generate(num_words * 32 // 3)
         return words
 
-    def xor(self, words: str) -> str:
-        """XOR a list of BIP39 words to get a single word."""
-        if isinstance(words, str):
-            words = words.split()
-        idx = 0
-        for word in words:
-            idx ^= self.map[word]
-        return self.words[idx]
+
+class BIP39(IP39):
+    """BIP39 class to handle mnemonic generation and validation."""
+
+    def __init__(self):
+        self.mnemo = Mnemonic()
+        self.words = self.mnemo.wordlist
+        assert len(self.words) == 2048 and self.words == sorted(self.words)
+        self.map = {word: idx+1 for idx, word in enumerate(self.words)}
 
     def reconstruct(self, mnemos: list[str]) -> str:
         """Reconstruct a mnemonic from its components."""
@@ -105,7 +53,7 @@ class BIP39:
         ).from_mnemonic(mnemo).p2pkh_address()
 
 
-class SLIP39:
+class SLIP39(IP39):
     """
     SLIP39 implementation for generating and reconstructing
     mnemonic phrases.
@@ -140,6 +88,6 @@ assert mnemo == b39.reconstruct(b39.deconstruct(mnemo))
 
 s39 = SLIP39()
 # Generate a 24 word mnemonic
-mnemo = s39.mnemo.generate(256)
+mnemo = s39.generate(24)
 # Check that the reconstruction is correct
 assert mnemo == s39.reconstruct(s39.deconstruct(mnemo))
