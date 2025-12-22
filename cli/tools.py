@@ -5,6 +5,7 @@ from hdwallet import HDWallet
 from hdwallet.symbols import ETH
 from hdwallet.cryptocurrencies import Ethereum
 from mnemonic import Mnemonic
+from shamir_mnemonic.wordlist import WORDLIST, WORD_INDEX_MAP
 import slip39
 
 
@@ -109,8 +110,10 @@ class SLIP39:
 
     def __init__(self):
         self.mnemo = slip39.recovery.Mnemonic()
+        self.wordlist = WORDLIST
+        self.word_index_map = WORD_INDEX_MAP
 
-    def deconstruct(self, mnemo: str, required: int = 2, total: int = 3) -> tuple[str, str]:
+    def deconstruct(self, mnemo: str, required: int = 2, total: int = 3) -> list[str]:
         """Deconstruct a mnemo into its shares."""
         _, shares = slip39.api.create(
             "LEDGER", 1, {"KEYS": (required, total)}, mnemo, using_bip39=True

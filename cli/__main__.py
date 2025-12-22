@@ -40,7 +40,6 @@ def deconstruct(
         help="Number of required shares for SLIP39 reconstruction (e.g. 2 of 3)")] = 2,
     total: Annotated[int, typer.Option(
         help="Number of total shares for SLIP39 reconstruction (e.g. 3 of 3)")] = 3,
-    # TODO: implement digits option
     digits: Annotated[bool, typer.Option(
         help="Output format: use digits instead of words"
     )] = False,
@@ -56,9 +55,18 @@ def deconstruct(
         print("BIP39 Deconstructed:", bip_parts)
         raise typer.Exit(code=0)
     else:
-        slip_parts = [cli.slip39.deconstruct(
-            part, required, total) for part in bip_parts]
-        print("SLIP39 Shares:", slip_parts)
+        total_shares = []
+        for part in bip_parts:
+            shares = cli.slip39.deconstruct(part, required, total)
+            if digits:
+                assert cli.slip39.wordlist == sorted(cli.slip39.wordlist)
+                slip_map = {word: idx+1 for idx, word in enumerate(
+                    cli.slip39.wordlist)}
+                shares = [" ".join(str(slip_map[word])
+                                   for word in share.split()) for share in shares]
+            total_shares.append(shares)
+
+        print("SLIP39 Shares:", total_shares)
         raise typer.Exit(code=0)
 
 
