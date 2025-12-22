@@ -1,6 +1,5 @@
 import typer
 from typing import Annotated
-from itertools import batched
 from cli.tools import BIP39, SLIP39
 
 
@@ -91,7 +90,9 @@ def reconstruct(
         raise typer.Exit(code=1)
 
     if standard.upper() == "SLIP39":
-        groups = list(batched(shares, split))
+        members = len(shares) // split
+        groups = [shares[i:i + members]
+                  for i in range(0, len(shares), members)]
         print("SLIP39 Groups:", groups)
         shares = [cli.slip39.reconstruct(group) for group in groups]
 
