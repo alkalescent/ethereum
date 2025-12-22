@@ -63,7 +63,7 @@ def deconstruct(
 
 
 @app.command()
-# TODO: implement digits, fix reconstruction (only one part currently)
+# TODO: implement digits
 def reconstruct(
     shares: Annotated[list[str], typer.Option(
         help="SLIP39 shares to reconstruct")] = [],
@@ -75,9 +75,6 @@ def reconstruct(
     split: Annotated[int, typer.Option(
         help="Number of SLIP39 share groups from which to reconstruct the BIP39 mnemonic(s) (e.g. 2 groups of 20-word shares)"
     )] = 2,
-    # required
-    # total
-    # digits
     digits: Annotated[bool, typer.Option(
         help="Input format: use digits instead of words"
     )] = False,
