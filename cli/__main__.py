@@ -1,5 +1,6 @@
 import typer
 from typing import Annotated
+from itertools import batched
 from cli.tools import BIP39, SLIP39
 
 
@@ -88,12 +89,14 @@ def reconstruct(
     if not shares:
         print("Shares are required")
         raise typer.Exit(code=1)
+
     if standard.upper() == "SLIP39":
-        reconstructed = cli.slip39.reconstruct(shares)
-        print("Reconstructed SLIP39:", reconstructed)
-    else:
-        reconstructed = cli.bip39.reconstruct(shares)
-        print("Reconstructed BIP39:", reconstructed)
+        groups = list(batched(shares, split))
+        print("SLIP39 Groups:", groups)
+        shares = [cli.slip39.reconstruct(group) for group in groups]
+
+    reconstructed = cli.bip39.reconstruct(shares)
+    print("BIP39 Reconstructed:", reconstructed)
     raise typer.Exit(code=0)
 
 
