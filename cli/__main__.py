@@ -93,7 +93,6 @@ def reconstruct(
         members = len(shares) // split
         groups = [shares[i:i + members]
                   for i in range(0, len(shares), members)]
-        print("SLIP39 Groups:", groups)
         shares = [cli.slip39.reconstruct(group) for group in groups]
 
     reconstructed = cli.bip39.reconstruct(shares)
