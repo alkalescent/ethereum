@@ -123,7 +123,6 @@ app()
 
 
 # TODO: use Nuitka to compile this CLI into a standalone executable instead of Pyinstaller for speed
-# TODO: standardize output formatting (e.g. JSON)
 # TODO: use comma-delimited string for list of str
 # TODO: use semi-colon and comma-delimited strings for list of list of str
 # TODO: use newline and comma delimited strings for list of list of str file input
