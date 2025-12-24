@@ -47,8 +47,6 @@ def deconstruct(
     )] = "",
     standard: Annotated[str, typer.Option(
         help="Output format: 'BIP39' or 'SLIP39'")] = "SLIP39",
-    split: Annotated[int, typer.Option(
-        help="Number of BIP39 parts to which to deconstruct the BIP39 mnemonic (e.g. 2 12-word parts for a 24-word mnemonic)")] = 2,
     required: Annotated[int, typer.Option(
         help="Number of required shares for SLIP39 reconstruction (e.g. 2 of 3)")] = 2,
     total: Annotated[int, typer.Option(
@@ -62,6 +60,11 @@ def deconstruct(
         mnemonic = cli.get_mnemos(filename)[0][0]
     if not mnemonic:
         raise ValueError("Mnemonic is required")
+
+    # Auto-detect split based on mnemonic length
+    word_count = len(mnemonic.split())
+    split = 2 if word_count == 24 else 1
+
     bip_parts = cli.bip39.deconstruct(mnemonic, split)
     if standard.upper() == "BIP39":
         output = [{
