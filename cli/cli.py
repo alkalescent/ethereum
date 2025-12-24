@@ -124,15 +124,17 @@ def reconstruct(
             # Convert digits to words for metadata extraction
             first_share = " ".join(cli.slip39.words[int(idx)-1]
                                    for idx in first_share.split())
-        required, total = cli.slip39.get_share_info(first_share)
+        _, total = cli.slip39.get_share_info(first_share)
 
     if standard.upper() == "SLIP39":
         groups = shares
         shares = []
-        for group in groups:
+        for gidx, group in enumerate(groups):
             if digits:
                 group = [" ".join(cli.slip39.words[int(idx)-1]
                                   for idx in member.split()) for member in group]
+
+            required = cli.slip39.get_share_info(group[gidx])[0]
             shares.append(cli.slip39.reconstruct(group))
     else:  # BIP39
         shares = [part for group in shares for part in group]
