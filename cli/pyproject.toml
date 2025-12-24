@@ -14,3 +14,6 @@ dependencies = [
 
 [dependency-groups]
 dev = ["pytest", "pytest-xdist", "nuitka", "ordered-set"]
+
+[tool.pytest.ini_options]
+addopts = "-n auto"
