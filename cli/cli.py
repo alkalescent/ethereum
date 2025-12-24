@@ -1,5 +1,6 @@
 import typer
 import logging
+import json
 from typing import Annotated
 from cli.tools import BIP39, SLIP39
 logging.getLogger("slip39").setLevel(logging.ERROR)
@@ -52,7 +53,11 @@ def deconstruct(
         raise ValueError("Mnemonic is required")
     bip_parts = cli.bip39.deconstruct(mnemonic, split)
     if standard.upper() == "BIP39":
-        typer.echo(f"BIP39 Deconstructed: {bip_parts}")
+        output = {
+            "type": "bip39",
+            "parts": bip_parts
+        }
+        typer.echo(json.dumps(output))
         raise typer.Exit(code=0)
     else:
         total_shares = []
@@ -63,7 +68,13 @@ def deconstruct(
                                    for word in share.split()) for share in shares]
             total_shares.append(shares)
 
-        print("SLIP39 Shares:", total_shares)
+        output = {
+            "type": "slip39",
+            "groups": total_shares,
+            "required": required,
+            "total": total
+        }
+        typer.echo(json.dumps(output))
         raise typer.Exit(code=0)
 
 
@@ -102,7 +113,11 @@ def reconstruct(
         shares = [" ".join(cli.bip39.words[int(idx)-1]
                            for idx in share.split()) for share in shares]
     reconstructed = cli.bip39.reconstruct(shares)
-    print("BIP39 Reconstructed:", reconstructed)
+    output = {
+        "type": "bip39",
+        "mnemonic": reconstructed
+    }
+    typer.echo(json.dumps(output))
     raise typer.Exit(code=0)
 
 
@@ -110,4 +125,8 @@ app()
 
 
 # TODO: use Nuitka to compile this CLI into a standalone executable instead of Pyinstaller for speed
-# TODO:
+# TODO: standardize output formatting (e.g. JSON)
+# TODO: use comma-delimited string for list of str
+# TODO: use semi-colon and comma-delimited strings for list of list of str
+# TODO: use newline and comma delimited strings for list of list of str file input
+# TODO: add JSON input option
