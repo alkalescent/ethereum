@@ -84,8 +84,6 @@ def deconstruct(
             "standard": "SLIP39",
             "shares": total_shares,
             "split": split,
-            "required": required,
-            "total": total,
             "digits": digits
         }
         typer.echo(json.dumps(output))
@@ -112,6 +110,19 @@ def reconstruct(
         shares = cli.get_mnemos(filename)
     if not shares:
         raise ValueError("Shares are required")
+
+    # Infer required and total from the first share if SLIP39
+    required = 0
+    total = 0
+    if standard.upper() == "SLIP39" and shares and shares[0]:
+        first_share = shares[0][0] if isinstance(
+            shares[0], list) else shares[0]
+        if digits:
+            # Convert digits to words for metadata extraction
+            first_share = " ".join(cli.slip39.words[int(idx)-1]
+                                   for idx in first_share.split())
+        required, total = cli.slip39.get_share_info(first_share)
+
     if standard.upper() == "SLIP39":
         groups = shares
         shares = []
@@ -128,6 +139,8 @@ def reconstruct(
         "standard": "BIP39",
         "mnemonic": reconstructed,
         "split": len(shares),
+        "required": required,
+        "total": total,
         "digits": digits
     }
     typer.echo(json.dumps(output))
