@@ -114,17 +114,8 @@ def reconstruct(
     if not shares:
         raise ValueError("Shares are required")
 
-    # Infer required and total from the first share if SLIP39
     required = 0
     total = 0
-    if standard.upper() == "SLIP39" and shares and shares[0]:
-        first_share = shares[0][0] if isinstance(
-            shares[0], list) else shares[0]
-        if digits:
-            # Convert digits to words for metadata extraction
-            first_share = " ".join(cli.slip39.words[int(idx)-1]
-                                   for idx in first_share.split())
-        _, total = cli.slip39.get_share_info(first_share)
 
     if standard.upper() == "SLIP39":
         groups = shares
@@ -134,7 +125,7 @@ def reconstruct(
                 group = [" ".join(cli.slip39.words[int(idx)-1]
                                   for idx in member.split()) for member in group]
 
-            required = cli.slip39.get_share_info(group[gidx])[0]
+            required, total = cli.slip39.get_share_info(group[gidx])
             shares.append(cli.slip39.reconstruct(group))
     else:  # BIP39
         shares = [part for group in shares for part in group]
