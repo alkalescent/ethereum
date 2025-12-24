@@ -49,11 +49,10 @@ def deconstruct(
     if not mnemonic:
         mnemonic = cli.get_mnemos(filename)[0]
     if not mnemonic:
-        print("Mnemonic is required")
-        raise typer.Exit(code=1)
+        raise ValueError("Mnemonic is required")
     bip_parts = cli.bip39.deconstruct(mnemonic, split)
     if standard.upper() == "BIP39":
-        print("BIP39 Deconstructed:", bip_parts)
+        typer.echo(f"BIP39 Deconstructed: {bip_parts}")
         raise typer.Exit(code=0)
     else:
         total_shares = []
@@ -88,8 +87,7 @@ def reconstruct(
     if not shares:
         shares = cli.get_mnemos(filename)
     if not shares:
-        print("Shares are required")
-        raise typer.Exit(code=1)
+        raise ValueError("Shares are required")
     if standard.upper() == "SLIP39":
         members = len(shares) // split
         groups = [shares[i:i + members]
@@ -98,7 +96,7 @@ def reconstruct(
         for group in groups:
             if digits:
                 group = [" ".join(cli.slip39.words[int(idx)-1]
-                         for idx in member.split()) for member in group]
+                                  for idx in member.split()) for member in group]
             shares.append(cli.slip39.reconstruct(group))
     elif digits:
         shares = [" ".join(cli.bip39.words[int(idx)-1]
@@ -109,3 +107,7 @@ def reconstruct(
 
 
 app()
+
+
+# TODO: use Nuitka to compile this CLI into a standalone executable instead of Pyinstaller for speed
+# TODO:

@@ -39,12 +39,12 @@ Split a BIP39 mnemonic into multiple parts or SLIP39 shares.
 
 **From command line:**
 ```bash
-uv run cli deconstruct --mnemonic "your 24 word mnemonic phrase here..."
+./dist/cli deconstruct --mnemonic "your 24 word mnemonic phrase here..."
 ```
 
 **From file:**
 ```bash
-uv run cli deconstruct --filename seed.txt --standard SLIP39
+./dist/cli deconstruct --filename seed.txt --standard SLIP39
 ```
 
 **Options:**
@@ -58,7 +58,7 @@ uv run cli deconstruct --filename seed.txt --standard SLIP39
 
 **Example: Create SLIP39 shares**
 ```bash
-uv run cli deconstruct \
+./dist/cli deconstruct \
   --mnemonic "word1 word2 ... word24" \
   --standard SLIP39 \
   --required 2 \
@@ -67,7 +67,7 @@ uv run cli deconstruct \
 
 **Example: Split into BIP39 parts**
 ```bash
-uv run cli deconstruct \
+./dist/cli deconstruct \
   --mnemonic "word1 word2 ... word24" \
   --standard BIP39 \
   --split 2
@@ -79,12 +79,12 @@ Reconstruct a BIP39 mnemonic from shares or parts.
 
 **From command line:**
 ```bash
-uv run cli reconstruct --shares "share1" "share2" --standard SLIP39
+./dist/cli reconstruct --shares "share1" "share2" --standard SLIP39
 ```
 
 **From file:**
 ```bash
-uv run cli reconstruct --filename shares.txt --standard SLIP39 --split 2
+./dist/cli reconstruct --filename shares.txt --standard SLIP39 --split 2
 ```
 
 **Options:**
@@ -96,7 +96,7 @@ uv run cli reconstruct --filename shares.txt --standard SLIP39 --split 2
 
 **Example: Reconstruct from SLIP39 shares**
 ```bash
-uv run cli reconstruct \
+./dist/cli reconstruct \
   --shares "share1" "share2" "share3" "share4" \
   --standard SLIP39 \
   --split 2
@@ -166,14 +166,14 @@ The CLI consists of three main modules:
 
 ```bash
 # Deconstruct
-uv run cli deconstruct \
+./dist/cli deconstruct \
   --mnemonic "abandon abandon ... art" \
   --standard SLIP39 \
   --required 2 \
   --total 3
 
 # Reconstruct (from file with 4+ shares)
-uv run cli reconstruct \
+./dist/cli reconstruct \
   --filename backup_shares.txt \
   --standard SLIP39 \
   --split 2
