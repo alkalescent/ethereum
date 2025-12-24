@@ -145,7 +145,6 @@ def reconstruct(
     output = {
         "standard": "BIP39",
         "mnemonic": reconstructed,
-        "split": len(shares),
         "required": required,
         "total": total,
         "digits": digits

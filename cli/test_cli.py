@@ -53,7 +53,6 @@ class TestDeconstructCommand:
         assert result.exit_code == 0
         output = json.loads(result.stdout)
         assert output["standard"] == "SLIP39"
-        assert output["split"] == 2
         assert len(output["shares"]) == SPLIT_PARTS
         assert all(len(group) == 3 for group in output["shares"])
 
@@ -178,7 +177,6 @@ class TestReconstructCommand:
             assert output["required"] == 2
             # Note: total cannot be reliably inferred from shares (not encoded in SLIP39)
             # It returns group_count which is 1 in our scheme
-            assert output["split"] == 2
         finally:
             os.unlink(temp_file)
 
@@ -324,7 +322,6 @@ class TestRoundtrip:
         assert recon_output["mnemonic"] == self.mnemo_24
         assert recon_output["required"] == 2
         # Note: total cannot be reliably inferred from shares
-        assert recon_output["split"] == 2
 
     def test_roundtrip_3of5(self):
         """Test full roundtrip with 3-of-5 threshold."""
@@ -356,7 +353,6 @@ class TestRoundtrip:
         assert recon_output["mnemonic"] == self.mnemo_24
         assert recon_output["required"] == 3
         # Note: total cannot be reliably inferred from shares
-        assert recon_output["split"] == 2
 
     def test_roundtrip_5of7(self):
         """Test full roundtrip with 5-of-7 threshold."""
@@ -396,7 +392,6 @@ class TestRoundtrip:
         assert recon_output["mnemonic"] == self.mnemo_24
         assert recon_output["required"] == 5
         # Note: total cannot be reliably inferred from shares
-        assert recon_output["split"] == 2
 
     def test_roundtrip_bip39_only(self):
         """Test BIP39-only roundtrip (no SLIP39)."""
