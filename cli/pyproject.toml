@@ -13,4 +13,4 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest", "pyinstaller"]
+dev = ["pytest", "nuitka", "ordered-set"]

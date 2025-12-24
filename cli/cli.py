@@ -130,7 +130,6 @@ def reconstruct(
 
 app()
 
-# TODO: use Nuitka to compile this CLI into a standalone executable instead of Pyinstaller for speed
 # TODO: add JSON input option
 # TODO: add cli tests with json output input roundtrip
 # TODO: add option to output to file instead of stdout
