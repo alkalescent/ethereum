@@ -209,11 +209,13 @@ class TestReconstructCommand:
             "--standard", "BIP39"
         ])
         decon_output = json.loads(result.stdout)
-
+        # print("decon_output:", decon_output)
+        # print(f"{decon_output[0]['mnemonic']},{decon_output[1]['mnemonic']}")
         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
             # Write as comma-separated values for each group (one BIP39 part per group)
-            f.write(f"{decon_output[0]['mnemonic']}\n")
-            f.write(f"{decon_output[1]['mnemonic']}\n")
+            f.write(
+                f"{decon_output[0]['mnemonic']},{decon_output[1]['mnemonic']}")
+            # f.write(f"{decon_output[1]['mnemonic']}\n")
             temp_file = f.name
 
         try:
@@ -222,7 +224,7 @@ class TestReconstructCommand:
                 "--filename", temp_file,
                 "--standard", "BIP39"
             ])
-
+            print("result.stdout:", result.stdout)
             assert result.exit_code == 0
             output = json.loads(result.stdout)
             assert output["standard"] == "BIP39"

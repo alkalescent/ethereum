@@ -135,12 +135,10 @@ def reconstruct(
                                   for idx in member.split()) for member in group]
             shares.append(cli.slip39.reconstruct(group))
     else:  # BIP39
-        # Flatten [[part1], [part2]] to [part1, part2] for BIP39
-        shares = [group[0] for group in shares]
-
+        shares = [part for group in shares for part in group]
         if digits:
             shares = [" ".join(cli.bip39.words[int(idx)-1]
-                               for idx in share.split()) for share in shares]
+                               for idx in share.split()) for share in shares[0]]
     reconstructed = cli.bip39.reconstruct(shares)
     output = {
         "standard": "BIP39",
