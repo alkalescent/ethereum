@@ -9,3 +9,5 @@ extra
 *.txt
 !requirements.txt
 config
+build
+*.spec
