@@ -2,7 +2,7 @@ import typer
 import logging
 import json
 from typing import Annotated
-from cli.tools import BIP39, SLIP39
+from tools import BIP39, SLIP39
 logging.getLogger("slip39").setLevel(logging.ERROR)
 
 
