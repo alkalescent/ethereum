@@ -66,7 +66,8 @@ def deconstruct(
     if standard.upper() == "BIP39":
         output = [{
             "standard": "BIP39",
-            "mnemonic": bip_part
+            "mnemonic": bip_part,
+            "digits": digits
         } for bip_part in bip_parts]
         typer.echo(json.dumps(output))
         raise typer.Exit(code=0)
@@ -82,6 +83,10 @@ def deconstruct(
         output = {
             "standard": "SLIP39",
             "shares": total_shares,
+            "split": split,
+            "required": required,
+            "total": total,
+            "digits": digits
         }
         typer.echo(json.dumps(output))
         raise typer.Exit(code=0)
@@ -103,7 +108,6 @@ def reconstruct(
     )] = False,
 ):
     cli.enforce_standard(standard)
-    print('shares:', shares)
     if not shares:
         shares = cli.get_mnemos(filename)
     if not shares:
@@ -122,7 +126,9 @@ def reconstruct(
     reconstructed = cli.bip39.reconstruct(shares)
     output = {
         "standard": "BIP39",
-        "mnemonic": reconstructed
+        "mnemonic": reconstructed,
+        "split": len(shares),
+        "digits": digits
     }
     typer.echo(json.dumps(output))
     raise typer.Exit(code=0)
