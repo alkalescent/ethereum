@@ -138,9 +138,9 @@ def reconstruct(
         # Flatten [[part1], [part2]] to [part1, part2] for BIP39
         shares = [group[0] for group in shares]
 
-    if digits and standard.upper() == "BIP39":
-        shares = [" ".join(cli.bip39.words[int(idx)-1]
-                           for idx in share.split()) for share in shares]
+        if digits:
+            shares = [" ".join(cli.bip39.words[int(idx)-1]
+                               for idx in share.split()) for share in shares]
     reconstructed = cli.bip39.reconstruct(shares)
     output = {
         "standard": "BIP39",
