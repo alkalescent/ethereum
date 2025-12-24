@@ -131,7 +131,11 @@ def reconstruct(
                 group = [" ".join(cli.slip39.words[int(idx)-1]
                                   for idx in member.split()) for member in group]
             shares.append(cli.slip39.reconstruct(group))
-    elif digits:
+    else:  # BIP39
+        # Flatten [[part1], [part2]] to [part1, part2] for BIP39
+        shares = [group[0] for group in shares]
+
+    if digits and standard.upper() == "BIP39":
         shares = [" ".join(cli.bip39.words[int(idx)-1]
                            for idx in share.split()) for share in shares]
     reconstructed = cli.bip39.reconstruct(shares)
@@ -147,9 +151,9 @@ def reconstruct(
     raise typer.Exit(code=0)
 
 
-app()
+if __name__ == "__main__":
+    app()
 
-# TODO: add cli tests with json output input roundtrip
 # TODO: move to new repo
 # TODO: add github release action and checksum
 # TODO: release on PyPI w name kintsugi alt

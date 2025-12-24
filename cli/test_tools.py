@@ -1,5 +1,5 @@
 import pytest
-from cli.tools import BIP39, SLIP39
+from tools import BIP39, SLIP39
 
 # Test constants
 WORDS_12 = 12
