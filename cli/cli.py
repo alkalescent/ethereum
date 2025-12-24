@@ -1,6 +1,8 @@
 import typer
+import logging
 from typing import Annotated
 from cli.tools import BIP39, SLIP39
+logging.getLogger("slip39").setLevel(logging.ERROR)
 
 
 class CLI:
@@ -17,8 +19,7 @@ class CLI:
 
     def enforce_standard(self, standard: str):
         if standard.upper() not in ["SLIP39", "BIP39"]:
-            print("Standard must be either 'SLIP39' or 'BIP39'")
-            raise typer.Exit(code=1)
+            raise ValueError("Standard must be either 'SLIP39' or 'BIP39'")
 
 
 app = typer.Typer()
