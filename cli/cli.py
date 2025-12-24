@@ -54,7 +54,7 @@ def deconstruct(
     bip_parts = cli.bip39.deconstruct(mnemonic, split)
     if standard.upper() == "BIP39":
         output = {
-            "type": "bip39",
+            "type": "BIP39",
             "parts": bip_parts
         }
         typer.echo(json.dumps(output))
@@ -69,7 +69,7 @@ def deconstruct(
             total_shares.append(shares)
 
         output = {
-            "type": "slip39",
+            "type": "SLIP39",
             "groups": total_shares,
             "required": required,
             "total": total
@@ -114,7 +114,7 @@ def reconstruct(
                            for idx in share.split()) for share in shares]
     reconstructed = cli.bip39.reconstruct(shares)
     output = {
-        "type": "bip39",
+        "type": "BIP39",
         "mnemonic": reconstructed
     }
     typer.echo(json.dumps(output))
