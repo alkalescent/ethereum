@@ -10,12 +10,6 @@ WORDS_24 = 24
 WORDS_12 = 12
 SPLIT_PARTS = 2
 
-
-def parse_2D_list(lines: list[str]) -> list[list[str]]:
-    """Parse lines into 2D list structure matching CLI get_mnemos format."""
-    return [[subline.strip() for subline in line.strip().split(',')] for line in lines]
-
-
 runner = CliRunner()
 
 
