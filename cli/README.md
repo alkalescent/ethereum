@@ -184,7 +184,7 @@ All commands output JSON for easy parsing and piping:
 Run the test suite:
 ```bash
 cd cli
-uv run pytest test_tools.py -v
+uv run pytest -v
 ```
 
 ## Security Notes
