@@ -115,7 +115,6 @@ def reconstruct(
         raise ValueError("Shares are required")
 
     required = 0
-    total = 0
 
     if standard.upper() == "SLIP39":
         groups = shares
@@ -125,7 +124,7 @@ def reconstruct(
                 group = [" ".join(cli.slip39.words[int(idx)-1]
                                   for idx in member.split()) for member in group]
 
-            required, total = cli.slip39.get_share_info(group[gidx])
+            required = cli.slip39.get_required(group[gidx])
             shares.append(cli.slip39.reconstruct(group))
     else:  # BIP39
         shares = [part for group in shares for part in group]
@@ -137,7 +136,6 @@ def reconstruct(
         "standard": "BIP39",
         "mnemonic": reconstructed,
         "required": required,
-        "total": total,
         "digits": digits
     }
     typer.echo(json.dumps(output))

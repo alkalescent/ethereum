@@ -79,9 +79,9 @@ class SLIP39(IP39):
         mnemo = self.mnemo.to_mnemonic(entropy)
         return mnemo
 
-    def get_share_info(self, share: str) -> tuple[int, int]:
-        """Extract required and total from a SLIP39 share.
-        Returns (required, total) tuple."""
+    def get_required(self, share: str) -> int:
+        """Extract required threshold from a SLIP39 share.
+        Returns required number of shares needed for reconstruction."""
         from shamir_mnemonic.share import Share
         share_obj = Share.from_mnemonic(share)
-        return (share_obj.member_threshold, share_obj.group_count)
+        return share_obj.member_threshold
