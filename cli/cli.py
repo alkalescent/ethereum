@@ -130,9 +130,7 @@ def reconstruct(
 
 app()
 
-# TODO: add JSON input option
 # TODO: add cli tests with json output input roundtrip
-# TODO: add option to output to file instead of stdout
 # TODO: move to new repo
 # TODO: add github release action and checksum
 # TODO: release on PyPI w name kintsugi alt
