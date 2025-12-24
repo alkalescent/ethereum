@@ -53,14 +53,14 @@ def deconstruct(
         raise ValueError("Mnemonic is required")
     bip_parts = cli.bip39.deconstruct(mnemonic, split)
     if standard.upper() == "BIP39":
-        output = {
-            "type": "BIP39",
-            "parts": bip_parts
-        }
+        output = [{
+            "standard": "BIP39",
+            "mnemonic": bip_part
+        } for bip_part in bip_parts]
         typer.echo(json.dumps(output))
         raise typer.Exit(code=0)
     else:
-        total_shares = []
+        total_shares: list[list[str]] = []
         for part in bip_parts:
             shares = cli.slip39.deconstruct(part, required, total)
             if digits:
@@ -69,10 +69,8 @@ def deconstruct(
             total_shares.append(shares)
 
         output = {
-            "type": "SLIP39",
-            "groups": total_shares,
-            "required": required,
-            "total": total
+            "standard": "SLIP39",
+            "shares": total_shares,
         }
         typer.echo(json.dumps(output))
         raise typer.Exit(code=0)
@@ -114,7 +112,7 @@ def reconstruct(
                            for idx in share.split()) for share in shares]
     reconstructed = cli.bip39.reconstruct(shares)
     output = {
-        "type": "BIP39",
+        "standard": "BIP39",
         "mnemonic": reconstructed
     }
     typer.echo(json.dumps(output))
