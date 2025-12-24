@@ -13,14 +13,25 @@ class CLI:
         self.bip39 = BIP39()
         self.slip39 = SLIP39()
 
-    def get_mnemos(self, filename: str) -> list[str]:
+    def get_mnemos(self, filename: str) -> list[list[str]]:
         """Get the mnemos from a file."""
         with open(filename, "r") as f:
-            return [line.strip() for line in f.readlines()]
+            return [[
+                subline.strip() for subline in line.strip().split(',')
+            ] for line in f.readlines()]
 
     def enforce_standard(self, standard: str):
         if standard.upper() not in ["SLIP39", "BIP39"]:
             raise ValueError("Standard must be either 'SLIP39' or 'BIP39'")
+
+    def parse_2D_list(self, value: str) -> list[list[str]]:
+        """Parse a string representation of a 2D list into an actual 2D list."""
+        value = value.strip()
+        if not value:
+            return []
+        lines = value.split(';')
+        result = [line.strip().split(',') for line in lines]
+        return result
 
 
 app = typer.Typer()
@@ -29,11 +40,11 @@ cli = CLI()
 
 @app.command()
 def deconstruct(
-    filename: Annotated[str, typer.Option(
-        help="File containing the BIP39 mnemonic"
-    )],
     mnemonic: Annotated[str, typer.Option(
         help="BIP39 mnemonic to deconstruct")] = "",
+    filename: Annotated[str, typer.Option(
+        help="File containing the BIP39 mnemonic"
+    )] = "",
     standard: Annotated[str, typer.Option(
         help="Output format: 'BIP39' or 'SLIP39'")] = "SLIP39",
     split: Annotated[int, typer.Option(
@@ -48,7 +59,7 @@ def deconstruct(
 ):
     cli.enforce_standard(standard)
     if not mnemonic:
-        mnemonic = cli.get_mnemos(filename)[0]
+        mnemonic = cli.get_mnemos(filename)[0][0]
     if not mnemonic:
         raise ValueError("Mnemonic is required")
     bip_parts = cli.bip39.deconstruct(mnemonic, split)
@@ -78,29 +89,27 @@ def deconstruct(
 
 @app.command()
 def reconstruct(
+    shares: Annotated[str, typer.Option(
+        help="SLIP39 shares to reconstruct",
+        parser=cli.parse_2D_list
+    )] = "",
     filename: Annotated[str, typer.Option(
         help="File containing the SLIP39 shares (newline separated)"
-    )],
-    shares: Annotated[list[str], typer.Option(
-        help="SLIP39 shares to reconstruct")] = [],
+    )] = "",
     standard: Annotated[str, typer.Option(
         help="Input format: 'BIP39' or 'SLIP39'")] = "SLIP39",
-    split: Annotated[int, typer.Option(
-        help="Number of SLIP39 share groups from which to reconstruct the BIP39 mnemonic(s) (e.g. 2 groups of 20-word shares)"
-    )] = 2,
     digits: Annotated[bool, typer.Option(
         help="Input format: use digits instead of words"
     )] = False,
 ):
     cli.enforce_standard(standard)
+    print('shares:', shares)
     if not shares:
         shares = cli.get_mnemos(filename)
     if not shares:
         raise ValueError("Shares are required")
     if standard.upper() == "SLIP39":
-        members = len(shares) // split
-        groups = [shares[i:i + members]
-                  for i in range(0, len(shares), members)]
+        groups = shares
         shares = []
         for group in groups:
             if digits:
@@ -121,11 +130,7 @@ def reconstruct(
 
 app()
 
-
 # TODO: use Nuitka to compile this CLI into a standalone executable instead of Pyinstaller for speed
-# TODO: use comma-delimited string for list of str
-# TODO: use semi-colon and comma-delimited strings for list of list of str
-# TODO: use newline and comma delimited strings for list of list of str file input
 # TODO: add JSON input option
 # TODO: add cli tests with json output input roundtrip
 # TODO: add option to output to file instead of stdout
