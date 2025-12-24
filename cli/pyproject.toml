@@ -13,4 +13,4 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest", "nuitka", "ordered-set"]
+dev = ["pytest", "pytest-xdist", "nuitka", "ordered-set"]
