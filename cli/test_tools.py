@@ -1,6 +1,5 @@
 import pytest
 from cli.tools import BIP39, SLIP39
-from hdwallet import HDWallet
 
 
 class TestBIP39:
@@ -151,7 +150,7 @@ class TestIntegration:
         # Cannot deconstruct 12-word BIP39 into 2 parts (entropy too small)
         # Instead, test SLIP39 directly on the 12-word mnemonic
         shares = self.slip39.deconstruct(mnemo, required=2, total=3)
-        
+
         # Reconstruct from shares
         mnemo_reconstructed = self.slip39.reconstruct(shares[:2])
         assert mnemo_reconstructed == mnemo
