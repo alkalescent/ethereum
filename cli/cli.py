@@ -29,13 +29,13 @@ cli = CLI()
 
 @app.command()
 def deconstruct(
+    filename: Annotated[str, typer.Option(
+        help="File containing the BIP39 mnemonic"
+    )],
     mnemonic: Annotated[str, typer.Option(
         help="BIP39 mnemonic to deconstruct")] = "",
     standard: Annotated[str, typer.Option(
         help="Output format: 'BIP39' or 'SLIP39'")] = "SLIP39",
-    filename: Annotated[str, typer.Option(
-        help="File containing the BIP39 mnemonic"
-    )] = "seed.txt",
     split: Annotated[int, typer.Option(
         help="Number of BIP39 parts to which to deconstruct the BIP39 mnemonic (e.g. 2 12-word parts for a 24-word mnemonic)")] = 2,
     required: Annotated[int, typer.Option(
@@ -44,7 +44,7 @@ def deconstruct(
         help="Number of total shares for SLIP39 reconstruction (e.g. 3 of 3)")] = 3,
     digits: Annotated[bool, typer.Option(
         help="Output format: use digits instead of words"
-    )] = False,
+    )] = False
 ):
     cli.enforce_standard(standard)
     if not mnemonic:
@@ -78,13 +78,13 @@ def deconstruct(
 
 @app.command()
 def reconstruct(
+    filename: Annotated[str, typer.Option(
+        help="File containing the SLIP39 shares (newline separated)"
+    )],
     shares: Annotated[list[str], typer.Option(
         help="SLIP39 shares to reconstruct")] = [],
     standard: Annotated[str, typer.Option(
         help="Input format: 'BIP39' or 'SLIP39'")] = "SLIP39",
-    filename: Annotated[str, typer.Option(
-        help="File containing the SLIP39 shares (newline separated)"
-    )] = "seed.txt",
     split: Annotated[int, typer.Option(
         help="Number of SLIP39 share groups from which to reconstruct the BIP39 mnemonic(s) (e.g. 2 groups of 20-word shares)"
     )] = 2,
@@ -127,3 +127,9 @@ app()
 # TODO: use semi-colon and comma-delimited strings for list of list of str
 # TODO: use newline and comma delimited strings for list of list of str file input
 # TODO: add JSON input option
+# TODO: add cli tests with json output input roundtrip
+# TODO: add option to output to file instead of stdout
+# TODO: move to new repo
+# TODO: add github release action and checksum
+# TODO: release on PyPI w name kintsugi alt
+# TODO: message PyPi user
