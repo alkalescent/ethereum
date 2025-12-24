@@ -78,16 +78,3 @@ class SLIP39(IP39):
             shares, using_bip39=True, as_entropy=True)
         mnemo = self.mnemo.to_mnemonic(entropy)
         return mnemo
-
-
-b39 = BIP39()
-# Generate a 24 word mnemonic
-mnemo = b39.generate(24)
-# Check that the reconstruction is correct
-assert mnemo == b39.reconstruct(b39.deconstruct(mnemo))
-
-s39 = SLIP39()
-# Generate a 24 word mnemonic
-mnemo = s39.generate(24)
-# Check that the reconstruction is correct
-assert mnemo == s39.reconstruct(s39.deconstruct(mnemo))
