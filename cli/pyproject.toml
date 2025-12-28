@@ -13,7 +13,15 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest", "pytest-xdist", "nuitka", "ordered-set"]
+dev = ["pytest", "pytest-xdist", "pytest-cov", "nuitka", "ordered-set"]
 
 [tool.pytest.ini_options]
 addopts = "-n auto"
+
+[tool.coverage.run]
+source = ["."]
+omit = ["test_*.py", "conftest.py", ".venv/*", "build/*"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true

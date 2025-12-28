@@ -187,6 +187,11 @@ cd cli
 uv run pytest -v
 ```
 
+Run with coverage reporting (requires 90% coverage):
+```bash
+uv run pytest --cov --cov-report=term-missing --cov-fail-under=90
+```
+
 ## Security Notes
 
 ⚠️ **Important Security Considerations:**
