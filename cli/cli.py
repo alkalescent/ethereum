@@ -144,7 +144,7 @@ def reconstruct(
 
 if __name__ == "__main__":
     app()
-
+# TODO: add one more test to make even number, add coverage, rename test functions to make clean
 # TODO: move to new repo
 # TODO: add github release action and checksum
 # TODO: release on PyPI w name kintsugi alt

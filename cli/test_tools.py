@@ -1,8 +1,10 @@
+import hdwallet
 import pytest
 from tools import BIP39, SLIP39
 
 # Test constants
 WORDS_12 = 12
+WORDS_20 = 20
 WORDS_24 = 24
 BIP39_WORDLIST_SIZE = 2048
 SLIP39_WORDLIST_SIZE = 1024
@@ -71,6 +73,12 @@ class TestBIP39:
             assert self.bip39.mnemo.check(mnemo)
             assert len(mnemo.split()) == WORDS_24
 
+    def test_eth(self):
+        """Test Ethereum address derivation from mnemonic."""
+        mnemo = self.bip39.generate(WORDS_12)
+        address = self.bip39.eth(mnemo)
+        assert address.startswith("0x") and len(address) == 42
+
 
 class TestSLIP39:
     """Test SLIP39 mnemonic generation and validation."""
@@ -114,6 +122,13 @@ class TestSLIP39:
         assert len(self.slip39.words) == SLIP39_WORDLIST_SIZE
         assert self.slip39.words == sorted(self.slip39.words)
         assert len(self.slip39.map) == SLIP39_WORDLIST_SIZE
+
+    def test_eth(self):
+        """Test Ethereum address derivation from mnemonic."""
+        mnemo = hdwallet.mnemonics.SLIP39Mnemonic.from_words(
+            WORDS_20, "english")
+        address = self.slip39.eth(mnemo)
+        assert address.startswith("0x") and len(address) == 42
 
 
 class TestIntegration:

@@ -1,4 +1,5 @@
 from hdwallet import HDWallet
+from hdwallet.mnemonics import BIP39Mnemonic, SLIP39Mnemonic, BIP39_MNEMONIC_LANGUAGES, IMnemonic
 from hdwallet.symbols import ETH
 from hdwallet.cryptocurrencies import Ethereum
 from mnemonic import Mnemonic
@@ -7,10 +8,10 @@ import slip39
 
 
 class IP39:
-    def generate(self, num_words: int) -> list[str]:
+    def generate(self, num_words: int) -> str:
         """Generate a random mnemonic of BIP39 words."""
-        words = self.mnemo.generate(num_words * 32 // 3)
-        return words
+        mnemo = self.mnemo.generate(num_words * 32 // 3)
+        return mnemo
 
 
 class BIP39(IP39):
@@ -46,11 +47,14 @@ class BIP39(IP39):
             raise ValueError("Invalid BIP39 mnemonics after deconstruction.")
         return mnemos
 
-    def eth(self, mnemo: str) -> HDWallet:
-        return HDWallet(
+    def eth(self, mnemo: str) -> str:
+        mnemo = BIP39Mnemonic(mnemo)
+        wallet = HDWallet(
             symbol=ETH,
             cryptocurrency=Ethereum
-        ).from_mnemonic(mnemo).p2pkh_address()
+        ).from_mnemonic(mnemo)
+        addr = wallet.address()
+        return addr
 
 
 class SLIP39(IP39):
@@ -85,3 +89,12 @@ class SLIP39(IP39):
         from shamir_mnemonic.share import Share
         share_obj = Share.from_mnemonic(share)
         return share_obj.member_threshold
+
+    def eth(self, mnemo: str) -> str:
+        mnemo = SLIP39Mnemonic(mnemo)
+        wallet = HDWallet(
+            symbol=ETH,
+            cryptocurrency=Ethereum
+        ).from_mnemonic(mnemo)
+        addr = wallet.address()
+        return addr
