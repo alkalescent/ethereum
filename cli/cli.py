@@ -70,6 +70,7 @@ def deconstruct(
         output = [{
             "standard": "BIP39",
             "mnemonic": bip_part,
+            "eth_addr": cli.bip39.eth(bip_part),
             "digits": digits
         } for bip_part in bip_parts]
         typer.echo(json.dumps(output))
@@ -135,6 +136,7 @@ def reconstruct(
     output = {
         "standard": "BIP39",
         "mnemonic": reconstructed,
+        "eth_addr": cli.bip39.eth(reconstructed),
         "required": required,
         "digits": digits
     }
@@ -144,7 +146,7 @@ def reconstruct(
 
 if __name__ == "__main__":
     app()
-# TODO: add coverage, rename test functions to make clean
+# TODO: add coverage
 # TODO: move to new repo
 # TODO: add github release action and checksum
 # TODO: release on PyPI w name kintsugi alt

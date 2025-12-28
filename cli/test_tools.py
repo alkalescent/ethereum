@@ -12,6 +12,11 @@ SPLIT_PARTS = 2
 TEST_ITERATIONS = 5
 
 
+def assert_valid_eth_addr(address: str):
+    """Assert that address is a valid Ethereum address."""
+    assert address.startswith("0x") and len(address) == 42
+
+
 class TestBIP39:
     """Test BIP39 mnemonic generation and validation."""
 
@@ -75,7 +80,7 @@ class TestBIP39:
         """Test Ethereum address derivation from mnemonic."""
         mnemo = self.bip39.generate(WORDS_12)
         address = self.bip39.eth(mnemo)
-        assert address.startswith("0x") and len(address) == 42
+        assert_valid_eth_addr(address)
 
 
 class TestSLIP39:
