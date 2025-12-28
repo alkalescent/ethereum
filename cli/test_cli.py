@@ -4,19 +4,9 @@ import os
 from typer.testing import CliRunner
 from cli import app
 from tools import BIP39, SLIP39
-
-# Test constants
-WORDS_24 = 24
-WORDS_12 = 12
-SPLIT_PARTS = 2
+from conftest import WORDS_24, SPLIT_PARTS, assert_eth_addr
 
 runner = CliRunner()
-
-
-def assert_valid_eth_addr(output: dict, key: str = "eth_addr"):
-    """Assert that output contains a valid Ethereum address."""
-    assert key in output
-    assert output[key].startswith("0x") and len(output[key]) == 42
 
 
 def assert_success_with_json(result) -> dict:
@@ -48,7 +38,7 @@ class TestDeconstruct:
         assert all(item["standard"] == "BIP39" for item in output)
         assert all("mnemonic" in item for item in output)
         for item in output:
-            assert_valid_eth_addr(item)
+            assert_eth_addr(item.get("eth_addr"))
 
     def test_slip39_default(self):
         """Test SLIP39 deconstruction with default 2-of-3."""
@@ -182,7 +172,7 @@ class TestReconstruct:
             assert output["standard"] == "BIP39"
             assert output["mnemonic"] == self.mnemo_24
             assert output["required"] == 2
-            assert_valid_eth_addr(output)
+            assert_eth_addr(output.get("eth_addr"))
             # Note: total cannot be reliably inferred from shares (not encoded in SLIP39)
             # It returns group_count which is 1 in our scheme
         finally:
@@ -207,7 +197,7 @@ class TestReconstruct:
         output = json.loads(result.stdout)
         assert output["standard"] == "BIP39"
         assert output["mnemonic"] == self.mnemo_24
-        assert_valid_eth_addr(output)
+        assert_eth_addr(output.get("eth_addr"))
 
     def test_bip39_file(self):
         """Test BIP39 reconstruction from file."""
@@ -271,7 +261,7 @@ class TestReconstruct:
             output = json.loads(result.stdout)
             assert output["mnemonic"] == self.mnemo_24
             assert output["digits"] is True
-            assert_valid_eth_addr(output)
+            assert_eth_addr(output.get("eth_addr"))
         finally:
             os.unlink(temp_file)
 
@@ -331,7 +321,7 @@ class TestRoundtrip:
         # Verify roundtrip
         assert recon_output["mnemonic"] == self.mnemo_24
         assert recon_output["required"] == 2
-        assert_valid_eth_addr(recon_output)
+        assert_eth_addr(recon_output.get("eth_addr"))
         # Note: total cannot be reliably inferred from shares
 
     def test_3of5(self):
@@ -363,7 +353,7 @@ class TestRoundtrip:
         # Verify roundtrip and auto-detected thresholds
         assert recon_output["mnemonic"] == self.mnemo_24
         assert recon_output["required"] == 3
-        assert_valid_eth_addr(recon_output)
+        assert_eth_addr(recon_output.get("eth_addr"))
         # Note: total cannot be reliably inferred from shares
 
     def test_5of7(self):
@@ -403,7 +393,7 @@ class TestRoundtrip:
         # Verify roundtrip and auto-detected thresholds
         assert recon_output["mnemonic"] == self.mnemo_24
         assert recon_output["required"] == 5
-        assert_valid_eth_addr(recon_output)
+        assert_eth_addr(recon_output.get("eth_addr"))
         # Note: total cannot be reliably inferred from shares
 
     def test_bip39_only(self):
@@ -477,7 +467,7 @@ class TestRoundtrip:
             # Verify roundtrip
             assert recon_output["mnemonic"] == self.mnemo_24
             assert recon_output["digits"] is True
-            assert_valid_eth_addr(recon_output)
+            assert_eth_addr(recon_output.get("eth_addr"))
         finally:
             os.unlink(temp_file)
 
@@ -518,7 +508,7 @@ class TestRoundtrip:
 
                 # Verify roundtrip
                 assert recon_output["mnemonic"] == self.mnemo_24
-                assert_valid_eth_addr(recon_output)
+                assert_eth_addr(recon_output.get("eth_addr"))
             finally:
                 os.unlink(shares_file)
         finally:
@@ -552,7 +542,7 @@ class TestAutoDetect:
         assert result.exit_code == 0
         output = json.loads(result.stdout)
         assert output["required"] == 2
-        assert_valid_eth_addr(output)
+        assert_eth_addr(output.get("eth_addr"))
         # Note: total cannot be reliably inferred from shares
 
     def test_3of5(self):
@@ -574,7 +564,7 @@ class TestAutoDetect:
         assert result.exit_code == 0
         output = json.loads(result.stdout)
         assert output["required"] == 3
-        assert_valid_eth_addr(output)
+        assert_eth_addr(output.get("eth_addr"))
         # Note: total cannot be reliably inferred from shares
 
     def test_5of7(self):
@@ -596,7 +586,7 @@ class TestAutoDetect:
         assert result.exit_code == 0
         output = json.loads(result.stdout)
         assert output["required"] == 5
-        assert_valid_eth_addr(output)
+        assert_eth_addr(output.get("eth_addr"))
         # Note: total cannot be reliably inferred from shares
 
     def test_with_digits(self):
@@ -630,7 +620,7 @@ class TestAutoDetect:
             assert result.exit_code == 0
             output = json.loads(result.stdout)
             assert output["required"] == 3
-            assert_valid_eth_addr(output)
+            assert_eth_addr(output.get("eth_addr"))
             # Note: total cannot be reliably inferred from shares
         finally:
             os.unlink(temp_file)

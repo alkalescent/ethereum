@@ -1,20 +1,14 @@
 import pytest
 from tools import BIP39, SLIP39
+from conftest import WORDS_24, SPLIT_PARTS, assert_eth_addr
 
 # Test constants
 WORDS_12 = 12
-WORDS_24 = 24
 BIP39_WORDLIST_SIZE = 2048
 SLIP39_WORDLIST_SIZE = 1024
 SHARES_REQUIRED = 2
 SHARES_TOTAL = 3
-SPLIT_PARTS = 2
 TEST_ITERATIONS = 5
-
-
-def assert_valid_eth_addr(address: str):
-    """Assert that address is a valid Ethereum address."""
-    assert address.startswith("0x") and len(address) == 42
 
 
 class TestBIP39:
@@ -80,7 +74,7 @@ class TestBIP39:
         """Test Ethereum address derivation from mnemonic."""
         mnemo = self.bip39.generate(WORDS_12)
         address = self.bip39.eth(mnemo)
-        assert_valid_eth_addr(address)
+        assert_eth_addr(address)
 
 
 class TestSLIP39:
