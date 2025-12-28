@@ -13,7 +13,7 @@ SPLIT_PARTS = 2
 runner = CliRunner()
 
 
-class TestDeconstructCommand:
+class TestDeconstruct:
     """Test the deconstruct CLI command."""
 
     def setup_method(self):
@@ -21,7 +21,7 @@ class TestDeconstructCommand:
         self.bip39 = BIP39()
         self.mnemo_24 = self.bip39.generate(WORDS_24)
 
-    def test_deconstruct_bip39_from_option(self):
+    def test_bip39_option(self):
         """Test BIP39 deconstruction from --mnemonic option."""
         result = runner.invoke(app, [
             "deconstruct",
@@ -36,7 +36,7 @@ class TestDeconstructCommand:
         assert all(item["standard"] == "BIP39" for item in output)
         assert all("mnemonic" in item for item in output)
 
-    def test_deconstruct_slip39_default(self):
+    def test_slip39_default(self):
         """Test SLIP39 deconstruction with default 2-of-3."""
         result = runner.invoke(app, [
             "deconstruct",
@@ -49,7 +49,7 @@ class TestDeconstructCommand:
         assert len(output["shares"]) == SPLIT_PARTS
         assert all(len(group) == 3 for group in output["shares"])
 
-    def test_deconstruct_slip39_custom_3of5(self):
+    def test_slip39_3of5(self):
         """Test SLIP39 deconstruction with custom 3-of-5."""
         result = runner.invoke(app, [
             "deconstruct",
@@ -64,7 +64,7 @@ class TestDeconstructCommand:
         assert len(output["shares"]) == SPLIT_PARTS
         assert all(len(group) == 5 for group in output["shares"])
 
-    def test_deconstruct_slip39_custom_5of7(self):
+    def test_slip39_5of7(self):
         """Test SLIP39 deconstruction with custom 5-of-7."""
         result = runner.invoke(app, [
             "deconstruct",
@@ -79,7 +79,7 @@ class TestDeconstructCommand:
         assert len(output["shares"]) == SPLIT_PARTS
         assert all(len(group) == 7 for group in output["shares"])
 
-    def test_deconstruct_from_file(self):
+    def test_from_file(self):
         """Test deconstruction from file."""
         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
             f.write(self.mnemo_24)
@@ -98,7 +98,7 @@ class TestDeconstructCommand:
         finally:
             os.unlink(temp_file)
 
-    def test_deconstruct_with_digits(self):
+    def test_with_digits(self):
         """Test deconstruction with digits output."""
         result = runner.invoke(app, [
             "deconstruct",
@@ -113,7 +113,7 @@ class TestDeconstructCommand:
         first_share = output["shares"][0][0]
         assert all(word.isdigit() or word == ' ' for word in first_share)
 
-    def test_deconstruct_invalid_standard(self):
+    def test_invalid_standard(self):
         """Test deconstruction with invalid standard."""
         result = runner.invoke(app, [
             "deconstruct",
@@ -125,7 +125,7 @@ class TestDeconstructCommand:
         # Error is raised as exception, check the exception
         assert result.exception is not None
 
-    def test_deconstruct_missing_mnemonic(self):
+    def test_missing_mnemonic(self):
         """Test deconstruction without mnemonic or file."""
         result = runner.invoke(app, [
             "deconstruct"
@@ -134,7 +134,7 @@ class TestDeconstructCommand:
         assert result.exit_code == 1
 
 
-class TestReconstructCommand:
+class TestReconstruct:
     """Test the reconstruct CLI command."""
 
     def setup_method(self):
@@ -143,7 +143,7 @@ class TestReconstructCommand:
         self.slip39 = SLIP39()
         self.mnemo_24 = self.bip39.generate(WORDS_24)
 
-    def test_reconstruct_slip39_from_file(self):
+    def test_slip39_file(self):
         """Test SLIP39 reconstruction from file."""
         # Create shares
         bip_parts = self.bip39.deconstruct(self.mnemo_24, SPLIT_PARTS)
@@ -173,7 +173,7 @@ class TestReconstructCommand:
         finally:
             os.unlink(temp_file)
 
-    def test_reconstruct_slip39_from_shares_option(self):
+    def test_slip39_option(self):
         """Test SLIP39 reconstruction from --shares option."""
         bip_parts = self.bip39.deconstruct(self.mnemo_24, SPLIT_PARTS)
         shares_group1 = self.slip39.deconstruct(
@@ -193,7 +193,7 @@ class TestReconstructCommand:
         assert output["standard"] == "BIP39"
         assert output["mnemonic"] == self.mnemo_24
 
-    def test_reconstruct_bip39_from_file(self):
+    def test_bip39_file(self):
         """Test BIP39 reconstruction from file."""
         # Use CLI to get properly formatted BIP39 output
         result = runner.invoke(app, [
@@ -223,7 +223,7 @@ class TestReconstructCommand:
         finally:
             os.unlink(temp_file)
 
-    def test_reconstruct_with_digits(self):
+    def test_with_digits(self):
         """Test reconstruction with digits input."""
         bip_parts = self.bip39.deconstruct(self.mnemo_24, SPLIT_PARTS)
         shares_group1 = self.slip39.deconstruct(
@@ -258,7 +258,7 @@ class TestReconstructCommand:
         finally:
             os.unlink(temp_file)
 
-    def test_reconstruct_invalid_standard(self):
+    def test_invalid_standard(self):
         """Test reconstruction with invalid standard."""
         result = runner.invoke(app, [
             "reconstruct",
@@ -270,7 +270,7 @@ class TestReconstructCommand:
         # Error is raised as exception
         assert result.exception is not None
 
-    def test_reconstruct_missing_shares(self):
+    def test_missing_shares(self):
         """Test reconstruction without shares or file."""
         result = runner.invoke(app, [
             "reconstruct"
@@ -287,7 +287,7 @@ class TestRoundtrip:
         self.bip39 = BIP39()
         self.mnemo_24 = self.bip39.generate(WORDS_24)
 
-    def test_roundtrip_default_2of3(self):
+    def test_default_2of3(self):
         """Test full roundtrip with default 2-of-3 threshold."""
         # Deconstruct
         result = runner.invoke(app, [
@@ -316,7 +316,7 @@ class TestRoundtrip:
         assert recon_output["required"] == 2
         # Note: total cannot be reliably inferred from shares
 
-    def test_roundtrip_3of5(self):
+    def test_3of5(self):
         """Test full roundtrip with 3-of-5 threshold."""
         # Deconstruct
         result = runner.invoke(app, [
@@ -347,7 +347,7 @@ class TestRoundtrip:
         assert recon_output["required"] == 3
         # Note: total cannot be reliably inferred from shares
 
-    def test_roundtrip_5of7(self):
+    def test_5of7(self):
         """Test full roundtrip with 5-of-7 threshold."""
         # Deconstruct
         result = runner.invoke(app, [
@@ -386,7 +386,7 @@ class TestRoundtrip:
         assert recon_output["required"] == 5
         # Note: total cannot be reliably inferred from shares
 
-    def test_roundtrip_bip39_only(self):
+    def test_bip39_only(self):
         """Test BIP39-only roundtrip (no SLIP39)."""
         # Deconstruct to BIP39
         result = runner.invoke(app, [
@@ -422,7 +422,7 @@ class TestRoundtrip:
         finally:
             os.unlink(temp_file)
 
-    def test_roundtrip_with_digits(self):
+    def test_with_digits(self):
         """Test full roundtrip with digits mode."""
         # Deconstruct with digits
         result = runner.invoke(app, [
@@ -460,7 +460,7 @@ class TestRoundtrip:
         finally:
             os.unlink(temp_file)
 
-    def test_roundtrip_file_based(self):
+    def test_file_based(self):
         """Test full roundtrip using files for both operations."""
         # Write mnemonic to file
         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
@@ -503,7 +503,7 @@ class TestRoundtrip:
             os.unlink(input_file)
 
 
-class TestAutoThresholdDetection:
+class TestAutoDetect:
     """Test automatic required/total detection from shares."""
 
     def setup_method(self):
@@ -512,7 +512,7 @@ class TestAutoThresholdDetection:
         self.slip39 = SLIP39()
         self.mnemo_24 = self.bip39.generate(WORDS_24)
 
-    def test_auto_detect_2of3(self):
+    def test_2of3(self):
         """Test auto-detection of 2-of-3 threshold."""
         bip_parts = self.bip39.deconstruct(self.mnemo_24, SPLIT_PARTS)
         shares_group1 = self.slip39.deconstruct(
@@ -532,7 +532,7 @@ class TestAutoThresholdDetection:
         assert output["required"] == 2
         # Note: total cannot be reliably inferred from shares
 
-    def test_auto_detect_3of5(self):
+    def test_3of5(self):
         """Test auto-detection of 3-of-5 threshold."""
         bip_parts = self.bip39.deconstruct(self.mnemo_24, SPLIT_PARTS)
         shares_group1 = self.slip39.deconstruct(
@@ -553,7 +553,7 @@ class TestAutoThresholdDetection:
         assert output["required"] == 3
         # Note: total cannot be reliably inferred from shares
 
-    def test_auto_detect_5of7(self):
+    def test_5of7(self):
         """Test auto-detection of 5-of-7 threshold."""
         bip_parts = self.bip39.deconstruct(self.mnemo_24, SPLIT_PARTS)
         shares_group1 = self.slip39.deconstruct(
@@ -574,7 +574,7 @@ class TestAutoThresholdDetection:
         assert output["required"] == 5
         # Note: total cannot be reliably inferred from shares
 
-    def test_auto_detect_with_digits(self):
+    def test_with_digits(self):
         """Test auto-detection works with digits mode."""
         bip_parts = self.bip39.deconstruct(self.mnemo_24, SPLIT_PARTS)
         shares_group1 = self.slip39.deconstruct(
