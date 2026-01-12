@@ -11,3 +11,4 @@ extra
 config
 build
 *.spec
+misc
