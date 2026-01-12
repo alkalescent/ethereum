@@ -296,6 +296,158 @@ class TestNodeGracefulShutdown:
 
         mock_handle.assert_called_once()
 
+    def test_stop_creates_snapshot_if_draining(self, node, mocker):
+        """Test draining logic creates snapshot."""
+        mocker.patch.object(node, "_handle_gracefully")
+        mocker.patch("staker.node.exit")
+        mocker.patch.object(node.env, "should_manage_snapshots", return_value=True)
+        mocker.patch.object(node.snapshot, "instance_is_draining", return_value=True)
+        mocker.patch.object(node.snapshot, "force_create")
+        mocker.patch.object(node.snapshot, "update")
+
+        node.stop()
+
+        node.snapshot.force_create.assert_called_once()
+
+    def test_stop_skips_snapshot_if_not_draining(self, node, mocker):
+        """Test draining logic skip."""
+        mocker.patch.object(node, "_handle_gracefully")
+        mocker.patch("staker.node.exit")
+        mocker.patch.object(node.env, "should_manage_snapshots", return_value=True)
+        mocker.patch.object(node.snapshot, "instance_is_draining", return_value=False)
+        mocker.patch.object(node.snapshot, "force_create")
+
+        node.stop()
+
+        node.snapshot.force_create.assert_not_called()
+
+
+class TestNodeRun:
+    """Tests for the main run loop."""
+
+    @pytest.fixture
+    def node(self, mocker, tmp_path):
+        mocker.patch("staker.node.DOCKER", False)
+        mocker.patch("staker.node.DEV", True)
+        logs_file = tmp_path / "logs.txt"
+        env = MockEnvironment(logs_path=str(logs_file))
+        return Node(env=env, snapshot=NoOpSnapshotManager())
+
+    def test_run_starts_processes(self, node, mocker):
+        """Test run starts all processes."""
+        mocker.patch.object(node.snapshot, "backup")
+        mocker.patch.object(node.booster, "get_relays", return_value=[])
+        mock_start = mocker.patch.object(node, "_start", return_value=([], []))
+        mocker.patch("staker.node.select.select", side_effect=KeyboardInterrupt)
+        mocker.patch.object(node, "_handle_gracefully")
+
+        with pytest.raises(KeyboardInterrupt):
+            node.run()
+
+        mock_start.assert_called()
+
+    def test_run_checks_snapshot_update(self, node, mocker):
+        """Test run checks snapshot update on start."""
+        mocker.patch.object(node.env, "should_manage_snapshots", return_value=True)
+        mock_update = mocker.patch.object(node.snapshot, "update", return_value=False)
+        mocker.patch.object(node.snapshot, "backup", side_effect=KeyboardInterrupt)
+
+        with pytest.raises(KeyboardInterrupt):
+            node.run()
+
+        mock_update.assert_called_once()
+
+    def test_run_pauses_for_old_snapshot(self, node, mocker):
+        """Test run loop pauses when backup is old."""
+        mocker.patch.object(node.snapshot, "backup", return_value={"SnapshotId": "old"})
+        mocker.patch.object(node.booster, "get_relays", return_value=[])
+        mocker.patch.object(node, "_start", return_value=([], []))
+        
+        # Snapshot is old - triggers pause
+        mocker.patch.object(node.snapshot, "is_older_than", return_value=True)
+        mock_interrupt = mocker.patch.object(node, "_interrupt")
+        
+        # select returns empty, then logs are processed, then a process dies
+        mocker.patch("staker.node.select.select", side_effect=[([], [], [])])
+        mocker.patch.object(node, "_stream_logs", return_value=[])
+        mocker.patch.object(node, "_interrupt_on_error", return_value=False)
+        mocker.patch.object(node, "_any_process_is_dead", return_value=True)
+        mocker.patch.object(node, "_handle_gracefully", side_effect=KeyboardInterrupt)
+
+        with pytest.raises(KeyboardInterrupt):
+            node.run()
+
+        mock_interrupt.assert_called_with(hard=False)
+
+
+
+
+class TestNodeVPNWait:
+    """Tests for VPN connection logic."""
+
+    @pytest.fixture
+    def node(self, mocker, tmp_path):
+        mocker.patch("staker.node.DOCKER", False)
+        mocker.patch("staker.node.DEV", True)
+        logs_file = tmp_path / "logs.txt"
+        env = MockEnvironment(logs_path=str(logs_file))
+        return Node(env=env, snapshot=NoOpSnapshotManager())
+
+    def test_wait_for_vpn_success(self, node, mocker):
+        """Test VPN connection success on first try."""
+        # Need: start_ip, check in while loop, check after loop
+        mocker.patch("staker.node.get_public_ip", side_effect=["1.1.1.1", "2.2.2.2", "2.2.2.2"])
+        mocker.patch.object(node, "_vpn", return_value=MagicMock())
+        mocker.patch("staker.node.sleep")
+
+        processes = node._wait_for_vpn()
+
+        assert len(processes) == 1
+
+    def test_wait_for_vpn_waits_in_loop(self, node, mocker):
+        """Test VPN wait loop sleeps while waiting."""
+        # IP stays same for first check, changes on second
+        mocker.patch("staker.node.get_public_ip", side_effect=[
+            "1.1.1.1",  # start_ip
+            "1.1.1.1",  # check 1 - same, loop continues
+            "2.2.2.2",  # check 2 - different, exit loop
+            "2.2.2.2",  # final check
+        ])
+        mocker.patch.object(node, "_vpn", return_value=MagicMock())
+        mock_sleep = mocker.patch("staker.node.sleep")
+        mocker.patch("staker.node.VPN_TIMEOUT", 6)  # 2 sleep cycles
+
+        processes = node._wait_for_vpn()
+
+        assert len(processes) == 1
+        mock_sleep.assert_called()
+
+    def test_wait_for_vpn_retries_on_timeout(self, node, mocker):
+        """Test VPN retries when connection times out."""
+        mock_proc = MagicMock()
+        mock_proc.pid = 123
+        
+        # Create a counter to track calls and change behavior
+        call_counter = {"count": 0}
+        first_ip = "1.1.1.1"
+        
+        def mock_get_ip():
+            call_counter["count"] += 1
+            # After several calls, return different IP
+            if call_counter["count"] > 3:
+                return "2.2.2.2"
+            return first_ip
+        
+        mocker.patch("staker.node.get_public_ip", side_effect=mock_get_ip)
+        mocker.patch.object(node, "_vpn", return_value=mock_proc)
+        mocker.patch("staker.node.sleep")
+        mocker.patch("os.kill")
+        mocker.patch("staker.node.VPN_TIMEOUT", 0.001)
+
+        processes = node._wait_for_vpn()
+
+        assert len(processes) == 1
+
 
 class TestNodeClientProcesses:
     """Tests for Ethereum client process methods."""

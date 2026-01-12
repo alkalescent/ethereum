@@ -168,3 +168,92 @@ class TestSnapshot:
         snapshot._purge([old_snap], exceptions)
 
         mock_ec2.delete_snapshot.assert_not_called()
+
+    def test_create_makes_snapshot_when_all_old(self, mock_boto3, mocker):
+        """Test _create creates snapshot when all existing are old."""
+        snapshot = Snapshot()
+        mocker.patch.object(snapshot, "is_older_than", return_value=True)
+        mocker.patch.object(snapshot, "force_create", return_value={"SnapshotId": "new"})
+        mocker.patch.object(snapshot, "_put_param")
+
+        result = snapshot._create([{"SnapshotId": "old"}])
+
+        assert result["SnapshotId"] == "new"
+        snapshot.force_create.assert_called_once()
+
+    def test_create_skips_if_recent_exists(self, mock_boto3, mocker):
+        """Test _create skips if a recent snapshot exists."""
+        snapshot = Snapshot()
+        mocker.patch.object(snapshot, "is_older_than", side_effect=[True, False])
+
+        result = snapshot._create([{"SnapshotId": "old"}, {"SnapshotId": "recent"}])
+
+        assert result is None
+
+    def test_update_returns_true_when_refresh_needed(self, mock_boto3, mocker):
+        """Test update method returning True when refresh is needed."""
+        snapshot = Snapshot()
+        mocker.patch.object(snapshot, "_get_snapshots", return_value=[
+            {"SnapshotId": "snap-new", "StartTime": datetime.utcnow()}
+        ])
+        mocker.patch.object(snapshot, "_get_param", return_value="snap-old")
+        mocker.patch.object(snapshot, "_put_param")
+
+        snapshot.ec2.describe_launch_template_versions.return_value = {
+            "LaunchTemplateVersions": [{
+                "VersionNumber": 1,
+                "LaunchTemplateData": {
+                    "BlockDeviceMappings": [
+                        {"DeviceName": "/dev/sdx", "Ebs": {"SnapshotId": "snap-old"}}
+                    ]
+                }
+            }]
+        }
+        snapshot.ec2.create_launch_template_version.return_value = {
+            "LaunchTemplateVersion": {"VersionNumber": 2}
+        }
+        snapshot.auto.describe_auto_scaling_groups.return_value = {
+            "AutoScalingGroups": [{
+                "LaunchTemplate": {"Version": "1"},
+                "Instances": [{"InstanceId": "", "LaunchTemplate": {"Version": "1"}}]
+            }]
+        }
+
+        result = snapshot.update()
+
+        assert result is True
+
+    def test_instance_is_draining_returns_true(self, mock_boto3, mocker):
+        """Test instance_is_draining returns True when draining."""
+        snapshot = Snapshot()
+        snapshot.instance_id = "i-123"
+
+        snapshot.ecs.list_container_instances.return_value = {"containerInstanceArns": ["arn:1"]}
+        snapshot.ecs.describe_container_instances.return_value = {
+            "containerInstances": [{"ec2InstanceId": "i-123", "status": "DRAINING"}]
+        }
+
+        assert snapshot.instance_is_draining() is True
+
+    def test_backup_creates_and_purges(self, mock_boto3, mocker):
+        """Test backup method flow."""
+        snapshot = Snapshot()
+        mocker.patch.object(snapshot, "_get_snapshots", return_value=[])
+        mocker.patch.object(snapshot, "_get_exceptions", return_value=set())
+        mocker.patch.object(snapshot, "_create", return_value={"SnapshotId": "new"})
+        mocker.patch.object(snapshot, "_purge")
+
+        result = snapshot.backup()
+
+        assert result["SnapshotId"] == "new"
+        snapshot._purge.assert_called_once()
+
+    def test_terminate_calls_ec2(self, mock_boto3, mocker):
+        """Test terminate calls EC2 terminate_instances."""
+        snapshot = Snapshot()
+        snapshot.instance_id = "i-abc"
+
+        snapshot.terminate()
+
+        snapshot.ec2.terminate_instances.assert_called_once_with(InstanceIds=["i-abc"])
+
