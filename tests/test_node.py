@@ -346,6 +346,21 @@ class TestNodeRun:
 
         mock_start.assert_called()
 
+    def test_start_with_vpn_enabled(self, node, mocker):
+        """Test _start includes VPN when VPN=True."""
+        mocker.patch("staker.node.VPN", True)
+        mocker.patch.object(node, "_wait_for_vpn", return_value=[{"process": MagicMock(), "prefix": "VPN"}])
+        mocker.patch.object(node, "_execution", return_value=MagicMock(stdout=MagicMock()))
+        mocker.patch.object(node, "_consensus", return_value=MagicMock(stdout=MagicMock()))
+        mocker.patch.object(node, "_validation", return_value=MagicMock(stdout=MagicMock()))
+        mocker.patch.object(node, "_mev", return_value=MagicMock(stdout=MagicMock()))
+
+        processes, streams = node._start()
+
+        assert len(processes) == 5  # VPN + 4 clients
+        node._wait_for_vpn.assert_called_once()
+
+
     def test_run_checks_snapshot_update(self, node, mocker):
         """Test run checks snapshot update on start."""
         mocker.patch.object(node.env, "should_manage_snapshots", return_value=True)
@@ -424,29 +439,37 @@ class TestNodeVPNWait:
 
     def test_wait_for_vpn_retries_on_timeout(self, node, mocker):
         """Test VPN retries when connection times out."""
-        mock_proc = MagicMock()
-        mock_proc.pid = 123
+        mock_proc1 = MagicMock()
+        mock_proc1.pid = 123
+        mock_proc2 = MagicMock()
+        mock_proc2.pid = 456
         
-        # Create a counter to track calls and change behavior
-        call_counter = {"count": 0}
-        first_ip = "1.1.1.1"
+        vpn_call_count = [0]
+        def mock_vpn():
+            vpn_call_count[0] += 1
+            return mock_proc1 if vpn_call_count[0] == 1 else mock_proc2
         
+        # IP stays same for first VPN attempt (triggers timeout), 
+        # then changes on second attempt
+        ip_call_count = [0]
         def mock_get_ip():
-            call_counter["count"] += 1
-            # After several calls, return different IP
-            if call_counter["count"] > 3:
-                return "2.2.2.2"
-            return first_ip
+            ip_call_count[0] += 1
+            # First 5 calls all return same IP (start + while loop + after loop check)
+            # Then return different IP for second VPN attempt
+            if ip_call_count[0] <= 5:
+                return "1.1.1.1"
+            return "2.2.2.2"
         
         mocker.patch("staker.node.get_public_ip", side_effect=mock_get_ip)
-        mocker.patch.object(node, "_vpn", return_value=mock_proc)
+        mocker.patch.object(node, "_vpn", side_effect=mock_vpn)
         mocker.patch("staker.node.sleep")
-        mocker.patch("os.kill")
-        mocker.patch("staker.node.VPN_TIMEOUT", 0.001)
+        mock_kill = mocker.patch("os.kill")
+        mocker.patch("staker.node.VPN_TIMEOUT", 0)  # Immediate timeout
 
         processes = node._wait_for_vpn()
 
         assert len(processes) == 1
+        mock_kill.assert_called()
 
 
 class TestNodeClientProcesses:
@@ -499,6 +522,69 @@ class TestNodeClientProcesses:
         # Check that comma-separated relays are present
         relay_arg_idx = call_args.index("-relays") + 1
         assert "relay1" in call_args[relay_arg_idx]
+
+
+class TestNodeProductionMode:
+    """Tests for production mode (DEV=False)."""
+
+    @pytest.fixture
+    def node(self, mocker, tmp_path):
+        mocker.patch("staker.node.DOCKER", True)
+        mocker.patch("staker.node.DEV", False)  # Production mode
+        logs_file = tmp_path / "logs.txt"
+        env = MockEnvironment(logs_path=str(logs_file))
+        return Node(env=env, snapshot=NoOpSnapshotManager())
+
+    def test_execution_includes_mainnet(self, node, mocker):
+        """Test execution uses --mainnet in production."""
+        mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
+        node._execution()
+        
+        call_args = mock_run.call_args[0][0]
+        assert "--mainnet" in call_args
+        assert "--holesky" not in call_args
+
+    def test_consensus_includes_mainnet(self, node, mocker):
+        """Test consensus uses --mainnet in production."""
+        mocker.patch("staker.node.glob", return_value=["prysm/state.ssz"])
+        mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
+        node._consensus()
+        
+        call_args = mock_run.call_args[0][0]
+        assert "--mainnet" in call_args
+        assert "--holesky" not in call_args
+
+    def test_validation_includes_mainnet(self, node, mocker):
+        """Test validation uses --mainnet in production."""
+        mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
+        node._validation()
+        
+        call_args = mock_run.call_args[0][0]
+        assert "--mainnet" in call_args
+        assert "--holesky" not in call_args
+
+    def test_mev_includes_mainnet(self, node, mocker):
+        """Test mev-boost uses -mainnet in production."""
+        node.relays = ["http://relay"]
+        mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
+        node._mev()
+        
+        call_args = mock_run.call_args[0][0]
+        assert "-mainnet" in call_args
+        assert "-holesky" not in call_args
+
+    def test_consensus_includes_p2p_host_dns(self, node, mocker):
+        """Test consensus includes p2p-host-dns when available."""
+        mocker.patch("staker.node.glob", return_value=["prysm/state.ssz"])
+        mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
+        
+        # Mock environment to return a p2p host
+        mocker.patch.object(node.env, "get_p2p_host_dns", return_value="node.example.com")
+        
+        node._consensus()
+        
+        call_args = mock_run.call_args[0][0]
+        assert any("p2p-host-dns" in arg for arg in call_args)
 
 
 class TestNodeVPN:

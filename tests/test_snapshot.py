@@ -257,3 +257,60 @@ class TestSnapshot:
 
         snapshot.ec2.terminate_instances.assert_called_once_with(InstanceIds=["i-abc"])
 
+    def test_get_exceptions_returns_ids(self, mock_boto3, mocker):
+        """Test _get_exceptions returns protected snapshot IDs."""
+        snapshot = Snapshot()
+        mocker.patch.object(snapshot, "_get_param", return_value="snap-param")
+        mocker.patch.object(snapshot, "_get_curr_snapshot_id", return_value="snap-current")
+
+        exceptions = snapshot._get_exceptions()
+
+        assert "snap-param" in exceptions
+        assert "snap-current" in exceptions
+        assert len(exceptions) == 2
+
+    def test_get_exceptions_filters_none(self, mock_boto3, mocker):
+        """Test _get_exceptions filters out None values."""
+        snapshot = Snapshot()
+        mocker.patch.object(snapshot, "_get_param", return_value=None)
+        mocker.patch.object(snapshot, "_get_curr_snapshot_id", return_value="snap-current")
+
+        exceptions = snapshot._get_exceptions()
+
+        assert None not in exceptions
+        assert len(exceptions) == 1
+
+    def test_get_curr_snapshot_id_returns_id(self, mock_boto3, mocker):
+        """Test _get_curr_snapshot_id extracts snapshot ID."""
+        snapshot = Snapshot()
+        snapshot.instance_id = "i-123"
+        
+        mocker.patch("staker.snapshot.AWS", True)
+        snapshot.ec2.get_launch_template_data.return_value = {
+            "LaunchTemplateData": {
+                "BlockDeviceMappings": [
+                    {"DeviceName": "/dev/sda", "Ebs": {}},
+                    {"DeviceName": "/dev/sdx", "Ebs": {"SnapshotId": "snap-xyz"}},
+                ]
+            }
+        }
+
+        result = snapshot._get_curr_snapshot_id()
+
+        assert result == "snap-xyz"
+
+    def test_get_curr_snapshot_id_returns_none_on_error(self, mock_boto3, mocker):
+        """Test _get_curr_snapshot_id returns None on error."""
+        snapshot = Snapshot()
+        
+        mocker.patch("staker.snapshot.AWS", True)
+        snapshot.ec2.get_launch_template_data.side_effect = Exception("API error")
+        
+        result = snapshot._get_curr_snapshot_id()
+
+        assert result is None
+
+
+
+
+
