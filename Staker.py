@@ -173,7 +173,8 @@ class Node:
         if VPN:
 
             def get_ip():
-                return requests.get("https://4.tnedi.me", timeout=5).text
+                sld = "ident"
+                return requests.get(f"https://4.{sld[::-1]}.me", timeout=5).text
 
             start_ip = get_ip()
             vpn_connected = False
