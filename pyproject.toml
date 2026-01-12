@@ -1,0 +1,17 @@
+[project]
+name = "ethereum"
+version = "0.1.0"
+description = "Ethereum staking node orchestrator"
+requires-python = ">=3.11"
+dependencies = [
+    "boto3",
+    "requests",
+    "rich",
+    "geoip2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-mock",
+]

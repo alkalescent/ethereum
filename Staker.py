@@ -10,7 +10,8 @@ from random import choice
 from rich.console import Console
 from glob import glob
 from Constants import DEPLOY_ENV, AWS, SNAPSHOT_DAYS, DEV, KILL_TIME, ETH_ADDR, DOCKER, VPN
-from Backup import Snapshot
+from Backup import Snapshot, SnapshotManager, NoOpSnapshotManager
+from Environment import Environment, AWSEnvironment, LocalEnvironment
 from MEV import Booster
 
 home_dir = os.path.expanduser("~")
@@ -20,9 +21,18 @@ print = console.print
 
 
 class Node:
-    def __init__(self):
+    def __init__(
+        self,
+        env: Environment,
+        snapshot: SnapshotManager,
+        booster: Booster | None = None
+    ):
+        self.env = env
+        self.snapshot = snapshot
+        self.booster = booster or Booster()
+        
         on_mac = platform == 'darwin'
-        prefix = f"{'/mnt/ebs' if DOCKER else home_dir}"
+        prefix = env.get_data_prefix() if DOCKER else home_dir
         geth_dir_base = f"/{'Library/Ethereum' if on_mac else '.ethereum'}"
         prysm_dir_base = f"/{'Library/Eth2' if on_mac else '.eth2'}"
         prysm_wallet_postfix = f"{'V' if on_mac else 'v'}alidators/prysm-wallet-v2"
@@ -34,12 +44,10 @@ class Node:
 
         ipc_postfix = '/geth.ipc'
         self.ipc_path = self.geth_data_dir + ipc_postfix
-        self.snapshot = Snapshot()
-        self.booster = Booster()
         self.kill_in_progress = False
         self.terminating = False
         self.processes = []
-        self.logs_file = f"/mnt/ebs{'' if AWS else '/ethereum'}/logs.txt"
+        self.logs_file = env.get_logs_path()
         with open(self.logs_file, 'w') as _:
             pass
 
@@ -100,8 +108,9 @@ class Node:
                 # f"--p2p-max-peers={MAX_PEERS}"
             ]
 
-        if AWS:
-            args += [f"--p2p-host-dns=aws.{'dev.' if DEV else ''}eth.forcepu.sh"]
+        p2p_host = self.env.get_p2p_host_dns(DEV)
+        if p2p_host:
+            args += [f"--p2p-host-dns={p2p_host}"]
 
         state_filename = glob(f'{prysm_dir}/state*.ssz')[0]
         block_filename = glob(f'{prysm_dir}/block*.ssz')[0]
@@ -240,7 +249,7 @@ class Node:
         if line:
             log = f'{prefix} {line}'
             colored = self.color(log)
-            print(log if AWS else colored)
+            print(colored if self.env.use_colored_logs() else log)
             with open(self.logs_file, 'a') as file:
                 file.write(f'{log}\n')
             return log
@@ -283,7 +292,7 @@ class Node:
         self.squeeze_logs(self.processes)
 
     def run(self):
-        if AWS:
+        if self.env.should_manage_snapshots():
             terminate = self.snapshot.update()
             if terminate:
                 self.terminating = True
@@ -291,8 +300,7 @@ class Node:
                 while self.terminating:
                     pass
         while True:
-            if AWS:
-                self.most_recent = self.snapshot.backup()
+            self.most_recent = self.snapshot.backup()
             self.relays = self.booster.get_relays()
             processes, streams = self.start()
             backup_is_recent = True
@@ -301,7 +309,7 @@ class Node:
             while True:
                 rstreams, _, _ = select.select(streams, [], [])
                 backup_is_recent = not self.snapshot.is_older_than(
-                    self.most_recent, SNAPSHOT_DAYS) if AWS else True
+                    self.most_recent, SNAPSHOT_DAYS)
                 if not backup_is_recent and not sent_interrupt:
                     print('Pausing node to initiate snapshot.')
                     self.interrupt(hard=False)
@@ -319,26 +327,27 @@ class Node:
         self.kill_in_progress = True
         self.handle_gracefully(self.processes, hard=True)
         print('Node stopped')
-        if AWS and self.snapshot.instance_is_draining() and not self.terminating:
+        if self.env.should_manage_snapshots() and self.snapshot.instance_is_draining() and not self.terminating:
             self.snapshot.force_create()
             self.snapshot.update()
         exit(0)
 
 
-node = Node()
+def main():
+    env = AWSEnvironment() if AWS else LocalEnvironment()
+    snapshot = Snapshot() if AWS else NoOpSnapshotManager()
+    node = Node(env=env, snapshot=snapshot)
+
+    def handle_signal(*_):
+        node.stop()
+
+    signal.signal(signal.SIGINT, handle_signal)
+    signal.signal(signal.SIGTERM, handle_signal)
+    node.run()
 
 
-def handle_signal(*_):
-    node.stop()
-
-
-signal.signal(signal.SIGINT, handle_signal)
-signal.signal(signal.SIGTERM, handle_signal)
-# add wait handler that handles wait signal by setting self.continue = True in init and replace both while True:
-# with while self.continue
-# wait handler will self.interrupt() and then self.continue to false
-
-node.run()
+if __name__ == "__main__":
+    main()
 
 # TODO:
 # - export metrics / have an easy way to monitor, Prometheus and Grafana Cloud free, node exporter

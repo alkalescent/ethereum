@@ -1,10 +1,67 @@
 import boto3
 import logging
+from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from Constants import DEPLOY_ENV, AWS, SNAPSHOT_DAYS, MAX_SNAPSHOT_DAYS
 
 
-class Snapshot:
+class SnapshotManager(ABC):
+    """Abstract base class for snapshot management."""
+    
+    @abstractmethod
+    def backup(self) -> dict | None:
+        """Create a backup snapshot if needed. Returns snapshot or None."""
+        ...
+    
+    @abstractmethod
+    def is_older_than(self, snapshot, num_days: int) -> bool:
+        """Check if a snapshot is older than the given number of days."""
+        ...
+    
+    @abstractmethod
+    def update(self) -> bool:
+        """Update launch template with latest snapshot. Returns True if refresh needed."""
+        ...
+    
+    @abstractmethod
+    def instance_is_draining(self) -> bool:
+        """Check if the ECS container instance is draining."""
+        ...
+    
+    @abstractmethod
+    def force_create(self) -> dict:
+        """Force create a new snapshot immediately."""
+        ...
+    
+    @abstractmethod
+    def terminate(self) -> None:
+        """Terminate the current EC2 instance."""
+        ...
+
+
+class NoOpSnapshotManager(SnapshotManager):
+    """No-op implementation for local development."""
+    
+    def backup(self) -> None:
+        return None
+    
+    def is_older_than(self, snapshot, num_days: int) -> bool:
+        return False
+    
+    def update(self) -> bool:
+        return False
+    
+    def instance_is_draining(self) -> bool:
+        return False
+    
+    def force_create(self) -> None:
+        return None
+    
+    def terminate(self) -> None:
+        pass
+
+
+class Snapshot(SnapshotManager):
     def __init__(self) -> None:
         self.tag = f'{DEPLOY_ENV}_staking_snapshot'
         self.ec2 = boto3.client('ec2')

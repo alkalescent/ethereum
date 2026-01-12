@@ -22,13 +22,16 @@ ENV PRYSM_DIR "${ETH_DIR}${PRYSM_DIR_BASE}"
 
 # Install deps
 RUN apt-get update && \
-    apt-get install -y python3 git curl bash python3-pip
+    apt-get install -y python3 git curl bash
 
-RUN python3 -m venv "${ETH_DIR}" --without-pip --system-site-packages
-# Use virtual env as default python path
-ENV PATH "${ETH_DIR}/bin:${PATH}"
-COPY requirements.txt .
-RUN python3 -m pip install -r requirements.txt
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Install Python dependencies with uv
+WORKDIR "${ETH_DIR}"
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
 
 # # Download geth (execution)
 RUN mkdir -p "${EXEC_DIR}"
@@ -85,6 +88,6 @@ WORKDIR "${ETH_DIR}"
 COPY vpn vpn
 RUN bash vpn/setup.sh
 
-COPY Staker.py Backup.py Constants.py MEV.py ./
+COPY Staker.py Backup.py Constants.py MEV.py Environment.py ./
 EXPOSE 30303/tcp 30303/udp 13000/tcp 12000/udp
 ENTRYPOINT ["python3", "Staker.py"]
