@@ -66,37 +66,16 @@ ENV PATH "${PATH}:${PRYSM_DIR}"
 COPY ".${PRYSM_DIR_BASE}/download_checkpoint.sh" .
 RUN bash download_checkpoint.sh
 
-# Download mev-boost and monitoring deps (extra)
+# Download mev-boost (extra)
 RUN mkdir -p "${EXTRA_DIR}"
 WORKDIR "${EXTRA_DIR}"
-
-# COPY ".${EXTRA_DIR_BASE}/prometheus.yml" .
 
 ENV MEV_VERSION 1.10.1
 ENV MEV_ARCHIVE "mev-boost_${MEV_VERSION}_linux_${ARCH}"
 
-# ENV PROM_VERSION 2.44.0-rc.2
-# ENV PROM_ARCHIVE "prometheus-${PROM_VERSION}.${PLATFORM_ARCH}"
-
-# ENV NODE_VERSION 1.5.0
-# ENV NODE_ARCHIVE "node_exporter-${NODE_VERSION}.${PLATFORM_ARCH}"
-
-ENV BEACONCHAIN_VERSION 0.1.0
-
 RUN curl -LO "https://github.com/flashbots/mev-boost/releases/download/v${MEV_VERSION}/${MEV_ARCHIVE}.tar.gz"
-# RUN curl -LO "https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/${PROM_ARCHIVE}.tar.gz"
-# RUN curl -LO "https://github.com/prometheus/node_exporter/releases/download/v${NODE_VERSION}/${NODE_ARCHIVE}.tar.gz"
-# RUN curl -Lo eth2-client-metrics-exporter "https://github.com/gobitfly/eth2-client-metrics-exporter/releases/download/${BEACONCHAIN_VERSION}/eth2-client-metrics-exporter-${PLATFORM_ARCH}"
-
 RUN tar -xvzf "${MEV_ARCHIVE}.tar.gz"
-# RUN tar -xvzf "${PROM_ARCHIVE}.tar.gz"
-# RUN tar -xvzf "${NODE_ARCHIVE}.tar.gz"
-
-# RUN mv "${PROM_ARCHIVE}/prometheus" . && rm -rf "${PROM_ARCHIVE}"
-# RUN mv "${NODE_ARCHIVE}/node_exporter" . && rm -rf "${NODE_ARCHIVE}"
-
-RUN chmod +x mev-boost 
-# prometheus node_exporter eth2-client-metrics-exporter
+RUN chmod +x mev-boost
 
 # Add extra to path
 ENV PATH "${PATH}:${EXTRA_DIR}"

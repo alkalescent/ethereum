@@ -30,9 +30,6 @@ Parameters:
     Description: AMI ID
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ecs/optimized-ami/amazon-linux-2023/arm64/recommended/image_id
-  BeaconChainKey:
-    Type: "String"
-    NoEcho: true
   HostedZoneId:
     Type: "String"
     NoEcho: true
@@ -177,8 +174,6 @@ Resources:
               Value: !Ref AWS::Region
             - Name: AWS
               Value: true
-            - Name: BEACONCHAIN_KEY
-              Value: !Ref BeaconChainKey
             - Name: ETH_ADDR
               Value: !Ref EthAddr
             - Name: DOCKER

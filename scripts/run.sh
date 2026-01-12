@@ -8,7 +8,6 @@ VPN="${VPN:-true}"
 
 docker run \
     --env ETH_ADDR="${ETH_ADDR}" \
-    --env BEACONCHAIN_KEY="" \
     --env AWS_DEFAULT_REGION=us-east-1 \
     --env DOCKER=true \
     --env VPN_USER="${VPN_USER}" \

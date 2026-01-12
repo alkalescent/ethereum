@@ -44,7 +44,6 @@ A complete Ethereum validator infrastructure running **Geth** (execution) + **Pr
 |----------|-------------|----------|
 | `DEPLOY_ENV` | `dev` (Holesky testnet) or `prod` (Mainnet) | ✅ |
 | `ETH_ADDR` | Fee recipient address | ✅ |
-| `BEACONCHAIN_KEY` | beaconcha.in API key | ✅ |
 | `AWS` | Set to `true` when running on AWS | ❌ |
 | `DOCKER` | Set to `true` when running in container | ❌ |
 | `VPN` | Set to `true` to enable VPN | ❌ |
@@ -68,7 +67,6 @@ pip install -r requirements.txt
 # Set environment
 export DEPLOY_ENV=dev
 export ETH_ADDR=0xYourAddress
-export BEACONCHAIN_KEY=your_key
 
 # Run (requires geth, beacon-chain, validator, mev-boost in PATH)
 python Staker.py

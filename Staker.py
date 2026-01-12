@@ -9,7 +9,7 @@ import subprocess
 from random import choice
 from rich.console import Console
 from glob import glob
-from Constants import DEPLOY_ENV, AWS, SNAPSHOT_DAYS, DEV, BEACONCHAIN_KEY, KILL_TIME, ETH_ADDR, DOCKER, VPN
+from Constants import DEPLOY_ENV, AWS, SNAPSHOT_DAYS, DEV, KILL_TIME, ETH_ADDR, DOCKER, VPN
 from Backup import Snapshot
 from MEV import Booster
 
@@ -143,28 +143,7 @@ class Node:
         cmd = ['mev-boost'] + args
         return self.run_cmd(cmd)
 
-    def prometheus(self):
-        args = ['--config.file=extra/prometheus.yml']
-        cmd = ['prometheus'] + args
-        return self.run_cmd(cmd)
 
-    def os_stats(self):
-        args = []
-        cmd = ['node_exporter'] + args
-        return self.run_cmd(cmd)
-
-    def client_stats(self):
-        args = [
-            f'--server.address=https://beaconcha.in/api/v1/client/metrics?apikey={BEACONCHAIN_KEY}&machine={DEPLOY_ENV}',
-            '--beaconnode.type=prysm',
-            '--beaconnode.address=http://localhost:8080/metrics',
-            '--validator.type=prysm',
-            '--validator.address=http://localhost:8081/metrics'
-        ]
-        if AWS:
-            args.append('--system.partition=/mnt/ebs')
-        cmd = ['eth2-client-metrics-exporter'] + args
-        return self.run_cmd(cmd)
 
     def vpn(self):
         VPN_USER = os.environ['VPN_USER']
@@ -207,18 +186,6 @@ class Node:
                 'process': self.mev(),
                 'prefix': "+++ MEV_BOOST +++"
             },
-            # {
-            #     'process': self.prometheus(),
-            #     'prefix': '// _PROMETHEUS //'
-            # },
-            # {
-            #     'process': self.os_stats(),
-            #     'prefix': '--- OS_STATS_ ---'
-            # },
-            # {
-            #     'process': self.client_stats(),
-            #     'prefix': '____BEACONCHA.IN_'
-            # }
         ]
 
         streams = []
