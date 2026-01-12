@@ -39,16 +39,30 @@ MAX_SNAPSHOTS: int = 3
 SNAPSHOT_DAYS: int = 30
 MAX_SNAPSHOT_DAYS: int = MAX_SNAPSHOTS * SNAPSHOT_DAYS
 
-# mainnet
-RELAYS = [
+# Log coloring styles for Rich console
+LOG_STYLES: dict[str, str] = {
+    "OPENVPN": "orange",
+    "EXECUTION": "bold magenta",
+    "CONSENSUS": "bold cyan",
+    "VALIDATION": "bold yellow",
+    "MEV_BOOST": "bold green",
+    "INFO": "green",
+    "WARN": "bright_yellow",
+    "WARNING": "bright_yellow",
+    "ERROR": "bright_red",
+    "level=info": "green",
+    "level=warning": "bright_yellow",
+    "level=error": "bright_red",
+}
+
+# MEV Relays - Mainnet
+RELAYS_MAINNET: list[str] = [
     # Aestus
     "https://0xa15b52576bcbf1072f4a011c0f99f9fb6c66f3e1ff321f11f461d15e31b1cb359caa092c71bbded0bae5b5ea401aab7e@aestus.live",
     # Agnostic
     "https://0xa7ab7a996c8584251c8f925da3170bdfd6ebc75d50f5ddc4050a6fdc77f2a3b5fce2cc750d0865e05d7228af97d69561@agnostic-relay.net",
     # bloXroute max profit
     "https://0x8b5d2e73e2a3a55c6c87b8b6eb92e0149a125c852751db1422fa951e42a09b82c142c3ea98d0d9930b056a3bc9896b8f@bloxroute.max-profit.blxrbdn.com",
-    # bloXroute regulated
-    # 'https://0xb0b07cd0abef743db4260b0ed50619cf6ad4d82064cb4fbec9d3ec530f7c5e6793d9f286c4e082c0244ffb9f2658fe88@bloxroute.regulated.blxrbdn.com',
     # Eden
     "https://0xb3ee7afcf27f1f1259ac1787876318c6584ee353097a50ed84f51a1f21a323b3736f271a895c7ce918c038e4265918be@relay.edennetwork.io",
     # Flashbots
@@ -63,19 +77,19 @@ RELAYS = [
     "https://0xa44f64faca0209764461b2abfe3533f9f6ed1d51844974e22d79d4cfd06eff858bb434d063e512ce55a1841e66977bfd@proof-relay.ponrelay.com",
     # Titan
     "https://0x8c4ed5e24fe5c6ae21018437bde147693f68cda427cd1122cf20819c30eda7ed74f72dece09bb313f2a1855595ab677d@global.titanrelay.xyz",
-    # Titan Regional (censored)
-    # "https://0x8c4ed5e24fe5c6ae21018437bde147693f68cda427cd1122cf20819c30eda7ed74f72dece09bb313f2a1855595ab677d@regional.titanrelay.xyz"
 ]
 
-if DEV:
-    # holesky
-    RELAYS = [
-        # Flashbots
-        "https://0xafa4c6985aa049fb79dd37010438cfebeb0f2bd42b115b89dd678dab0670c1de38da0c4e9138c9290a398ecd9a0b3110@boost-relay-holesky.flashbots.net",
-        # Aestus
-        "https://0xab78bf8c781c58078c3beb5710c57940874dd96aef2835e7742c866b4c7c0406754376c2c8285a36c630346aa5c5f833@holesky.aestus.live",
-        # Ultra Sound
-        "https://0xb1559beef7b5ba3127485bbbb090362d9f497ba64e177ee2c8e7db74746306efad687f2cf8574e38d70067d40ef136dc@relay-stag.ultrasound.money"
-        # BloXroute
-        "https://0x821f2a65afb70e7f2e820a925a9b4c80a159620582c1766b1b09729fec178b11ea22abb3a51f07b288be815a1a2ff516@bloxroute.holesky.blxrbdn.com",
-    ]
+# MEV Relays - Holesky testnet
+RELAYS_HOLESKY: list[str] = [
+    # Flashbots
+    "https://0xafa4c6985aa049fb79dd37010438cfebeb0f2bd42b115b89dd678dab0670c1de38da0c4e9138c9290a398ecd9a0b3110@boost-relay-holesky.flashbots.net",
+    # Aestus
+    "https://0xab78bf8c781c58078c3beb5710c57940874dd96aef2835e7742c866b4c7c0406754376c2c8285a36c630346aa5c5f833@holesky.aestus.live",
+    # Ultra Sound
+    "https://0xb1559beef7b5ba3127485bbbb090362d9f497ba64e177ee2c8e7db74746306efad687f2cf8574e38d70067d40ef136dc@relay-stag.ultrasound.money",
+    # BloXroute
+    "https://0x821f2a65afb70e7f2e820a925a9b4c80a159620582c1766b1b09729fec178b11ea22abb3a51f07b288be815a1a2ff516@bloxroute.holesky.blxrbdn.com",
+]
+
+# Select relays based on environment
+RELAYS: list[str] = RELAYS_HOLESKY if DEV else RELAYS_MAINNET

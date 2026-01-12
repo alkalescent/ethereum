@@ -88,6 +88,7 @@ WORKDIR "${ETH_DIR}"
 COPY vpn vpn
 RUN bash vpn/setup.sh
 
-COPY Staker.py Backup.py Constants.py MEV.py Environment.py ./
+COPY src/staker src/staker
+ENV PYTHONPATH="${ETH_DIR}/src"
 EXPOSE 30303/tcp 30303/udp 13000/tcp 12000/udp
-ENTRYPOINT ["python3", "Staker.py"]
+ENTRYPOINT ["python3", "-m", "staker.node"]

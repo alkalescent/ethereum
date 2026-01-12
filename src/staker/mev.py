@@ -9,7 +9,7 @@ from time import sleep, time
 
 import requests
 
-from Constants import RELAYS
+from staker.config import RELAYS
 
 
 class Booster:
@@ -76,7 +76,8 @@ class Booster:
         try:
             start = time()
             response = requests.get(
-                f"{domain}/relay/v1/data/bidtraces/proposer_payload_delivered", timeout=10
+                f"{domain}/relay/v1/data/bidtraces/proposer_payload_delivered",
+                timeout=10,
             )
             end = time()
             if response.ok:

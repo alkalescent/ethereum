@@ -1,6 +1,6 @@
 """Tests for Environment classes."""
 
-from Environment import AWSEnvironment, LocalEnvironment
+from staker.environment import AWSEnvironment, LocalEnvironment
 
 
 class TestAWSEnvironment:

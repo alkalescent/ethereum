@@ -13,3 +13,4 @@ build
 *.spec
 misc
 __pycache__
+.coverage

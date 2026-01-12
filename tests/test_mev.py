@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from MEV import Booster
+from staker.mev import Booster
 
 
 class TestBooster:
@@ -43,7 +43,7 @@ class TestBooster:
         mocker.patch.object(booster, "ping", side_effect=mock_ping)
         # Need at least 2 good relays for stdev calculation
         mocker.patch(
-            "MEV.RELAYS",
+            "staker.mev.RELAYS",
             [
                 "https://good.relay",
                 "https://bad.relay",
@@ -51,7 +51,7 @@ class TestBooster:
                 "https://third.good",
             ],
         )
-        mocker.patch("MEV.sleep")
+        mocker.patch("staker.mev.sleep")
 
         relays = booster.get_relays()
 
@@ -65,8 +65,8 @@ class TestBooster:
 
         # Mock ping to return None for all (simulating network failure)
         mocker.patch.object(booster, "ping", return_value=None)
-        mocker.patch("MEV.RELAYS", ["https://relay1", "https://relay2"])
-        mocker.patch("MEV.sleep")
+        mocker.patch("staker.mev.RELAYS", ["https://relay1", "https://relay2"])
+        mocker.patch("staker.mev.sleep")
 
         relays = booster.get_relays()
 
@@ -79,8 +79,8 @@ class TestBooster:
 
         mock_response = MagicMock()
         mock_response.ok = True
-        mocker.patch("MEV.requests.get", return_value=mock_response)
-        mocker.patch("MEV.time", side_effect=[1.0, 1.15])  # 150ms elapsed
+        mocker.patch("staker.mev.requests.get", return_value=mock_response)
+        mocker.patch("staker.mev.time", side_effect=[1.0, 1.15])  # 150ms elapsed
 
         result = booster.ping("https://test.relay")
 
@@ -92,8 +92,8 @@ class TestBooster:
 
         mock_response = MagicMock()
         mock_response.ok = False
-        mocker.patch("MEV.requests.get", return_value=mock_response)
-        mocker.patch("MEV.time", side_effect=[1.0, 1.1])
+        mocker.patch("staker.mev.requests.get", return_value=mock_response)
+        mocker.patch("staker.mev.time", side_effect=[1.0, 1.1])
 
         result = booster.ping("https://test.relay")
 

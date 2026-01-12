@@ -13,7 +13,7 @@ from typing import Any
 
 import boto3
 
-from Constants import AWS, DEPLOY_ENV, MAX_SNAPSHOT_DAYS, SNAPSHOT_DAYS
+from staker.config import AWS, DEPLOY_ENV, MAX_SNAPSHOT_DAYS, SNAPSHOT_DAYS
 
 
 class SnapshotManager(ABC):
@@ -274,7 +274,8 @@ class Snapshot(SnapshotManager):
 
         template_name = f"{DEPLOY_ENV}_launch_template"
         launch_template = self.ec2.describe_launch_template_versions(
-            LaunchTemplateName=template_name, Versions=["$Latest"]
+            LaunchTemplateName=template_name,
+            Versions=["$Latest"],
         )["LaunchTemplateVersions"][0]
 
         vol = None
@@ -304,11 +305,15 @@ class Snapshot(SnapshotManager):
         def is_latest_version(curr_version: str, latest_version: str) -> bool:
             return curr_version == latest_version or curr_version == "$Latest"
 
-        update_asg = not is_latest_version(str(asg["LaunchTemplate"]["Version"]), template_version)
+        update_asg = not is_latest_version(
+            str(asg["LaunchTemplate"]["Version"]),
+            template_version,
+        )
 
         instance = next(inst for inst in asg["Instances"] if inst["InstanceId"] == self.instance_id)
         refresh_instance = not is_latest_version(
-            str(instance["LaunchTemplate"]["Version"]), template_version
+            str(instance["LaunchTemplate"]["Version"]),
+            template_version,
         )
 
         if update_asg:
@@ -326,7 +331,8 @@ class Snapshot(SnapshotManager):
             "containerInstanceArns"
         ]
         container_instances = self.ecs.describe_container_instances(
-            cluster=cluster_name, containerInstances=container_instance_arns
+            cluster=cluster_name,
+            containerInstances=container_instance_arns,
         )["containerInstances"]
         container_instance = next(
             inst for inst in container_instances if inst["ec2InstanceId"] == self.instance_id

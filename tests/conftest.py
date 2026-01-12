@@ -8,7 +8,7 @@ import pytest
 os.environ.setdefault("DEPLOY_ENV", "dev")
 os.environ.setdefault("ETH_ADDR", "0x0000000000000000000000000000000000000000")
 
-from Environment import Environment
+from staker.environment import Environment
 
 
 class MockEnvironment(Environment):
