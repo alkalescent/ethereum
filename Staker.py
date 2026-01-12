@@ -12,7 +12,16 @@ import requests
 from rich.console import Console
 
 from Backup import NoOpSnapshotManager, Snapshot, SnapshotManager
-from Constants import AWS, DEV, DOCKER, ETH_ADDR, KILL_TIME, SNAPSHOT_DAYS, VPN
+from Constants import (
+    AWS,
+    DEV,
+    DOCKER,
+    ETH_ADDR,
+    KILL_TIME,
+    SNAPSHOT_DAYS,
+    VPN,
+    VPN_TIMEOUT,
+)
 from Environment import AWSEnvironment, Environment, LocalEnvironment
 from MEV import Booster
 
@@ -164,13 +173,25 @@ class Node:
         if VPN:
 
             def get_ip():
-                return requests.get("https://4.tnedi.me").text
+                return requests.get("https://4.tnedi.me", timeout=5).text
 
             start_ip = get_ip()
-            processes.append({"process": self.vpn(), "prefix": "xxx OPENVPN__ xxx"})
-            while start_ip == get_ip():
-                print("Waiting for VPN...")
-                sleep(3)
+            vpn_connected = False
+            while not vpn_connected:
+                vpn_process = self.vpn()
+                processes.append({"process": vpn_process, "prefix": "xxx OPENVPN__ xxx"})
+                elapsed = 0
+                while start_ip == get_ip() and elapsed < VPN_TIMEOUT:
+                    print("Waiting for VPN...")
+                    sleep(VPN_TIMEOUT / 3)
+                    elapsed += VPN_TIMEOUT / 3
+
+                if start_ip == get_ip():
+                    print(f"VPN connection timed out after {VPN_TIMEOUT}s, retrying...")
+                    os.kill(vpn_process.pid, signal.SIGKILL)
+                    processes.pop()
+                else:
+                    vpn_connected = True
         processes += [
             {"process": self.execution(), "prefix": "<<< EXECUTION >>>"},
             {"process": self.consensus(), "prefix": "[[[ CONSENSUS ]]]"},
