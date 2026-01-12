@@ -6,8 +6,8 @@ A complete Ethereum validator infrastructure running **Geth** (execution) + **Pr
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        Staker.py                            │
-│                   (Process Orchestrator)                    │
+│                      staker.node                            │
+│                  (Process Orchestrator)                     │
 ├──────────┬──────────┬──────────┬──────────┬────────────────┤
 │   Geth   │  Beacon  │Validator │MEV-Boost │   VPN (opt)    │
 │(Execution)│  Chain   │          │          │                │
@@ -19,17 +19,17 @@ A complete Ethereum validator infrastructure running **Geth** (execution) + **Pr
                     └─────────────┘
 ```
 
-## Components
+## Project Structure
 
-| File | Purpose |
-|------|---------|
-| `Staker.py` | Main orchestrator - starts/monitors all processes, handles signals |
-| `Environment.py` | Runtime abstraction for AWS vs local environments |
-| `Backup.py` | EBS snapshot management for persistence |
-| `MEV.py` | Dynamically selects reliable MEV relays |
-| `Constants.py` | Configuration and relay lists |
-| `Dockerfile` | Container build with Geth, Prysm, MEV-Boost |
-| `template.yaml` | CloudFormation stack for AWS infrastructure |
+```
+src/staker/
+├── config.py       # Configuration constants and relay lists
+├── environment.py  # Runtime abstraction (AWS vs local)
+├── mev.py          # MEV relay selection and health checking
+├── node.py         # Main orchestrator - starts/monitors processes
+├── snapshot.py     # EBS snapshot management for persistence
+└── utils.py        # Utility functions (IP check, log coloring)
+```
 
 ## Prerequisites
 
@@ -64,28 +64,30 @@ A complete Ethereum validator infrastructure running **Geth** (execution) + **Pr
 
 ```bash
 make install
-# or: uv sync --all-groups
 ```
 
 ### Lint
 
 ```bash
 make lint
-# or: uv run ruff check . && uv run ruff format --check .
 ```
 
 ### Format
 
 ```bash
 make format
-# or: uv run ruff check --fix . && uv run ruff format .
 ```
 
 ### Test
 
 ```bash
 make test
-# or: uv run pytest tests/ -v
+```
+
+### Test with Coverage
+
+```bash
+make cov
 ```
 
 ### Build Docker Image
