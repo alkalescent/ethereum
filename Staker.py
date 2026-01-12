@@ -297,6 +297,8 @@ class Node:
                 sleep(1)
             return self.all_processes_are_dead(processes)
 
+        # Send SIGINT first for graceful shutdown
+        self.interrupt(hard=hard)
         if not wait_for_exit():
             self.terminate(hard=hard)
         if not wait_for_exit():
