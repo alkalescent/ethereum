@@ -1,0 +1,170 @@
+"""Tests for snapshot management."""
+
+from datetime import datetime, timedelta
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from staker.snapshot import NoOpSnapshotManager, Snapshot, SnapshotManager
+
+
+class TestNoOpSnapshotManager:
+    """Tests for NoOpSnapshotManager."""
+
+    def test_backup_returns_none(self):
+        manager = NoOpSnapshotManager()
+        assert manager.backup() is None
+
+    def test_is_older_than_returns_false(self):
+        manager = NoOpSnapshotManager()
+        assert manager.is_older_than(None, 30) is False
+        assert manager.is_older_than({}, 30) is False
+
+    def test_update_returns_false(self):
+        manager = NoOpSnapshotManager()
+        assert manager.update() is False
+
+    def test_instance_is_draining_returns_false(self):
+        manager = NoOpSnapshotManager()
+        assert manager.instance_is_draining() is False
+
+    def test_force_create_returns_none(self):
+        manager = NoOpSnapshotManager()
+        assert manager.force_create() is None
+
+    def test_terminate_does_nothing(self):
+        manager = NoOpSnapshotManager()
+        # Should not raise
+        manager.terminate()
+
+
+class TestSnapshot:
+    """Tests for Snapshot class."""
+
+    @pytest.fixture
+    def mock_boto3(self, mocker):
+        """Mock boto3 clients."""
+        mocker.patch("staker.snapshot.boto3.client")
+        mocker.patch("staker.snapshot.AWS", False)  # Prevent file reads
+        return mocker
+
+    def test_is_older_than_none(self, mock_boto3):
+        snapshot = Snapshot()
+        assert snapshot.is_older_than(None, 30) is True
+
+    def test_is_older_than_recent(self, mock_boto3):
+        snapshot = Snapshot()
+        recent_snap = {"StartTime": datetime.utcnow()}
+        assert snapshot.is_older_than(recent_snap, 30) is False
+
+    def test_is_older_than_old(self, mock_boto3):
+        snapshot = Snapshot()
+        old_snap = {"StartTime": datetime.utcnow() - timedelta(days=60)}
+        assert snapshot.is_older_than(old_snap, 30) is True
+
+    def test_is_older_than_exactly_at_limit(self, mock_boto3):
+        snapshot = Snapshot()
+        # Just under 30 days
+        almost_old = {"StartTime": datetime.utcnow() - timedelta(days=29, hours=23)}
+        assert snapshot.is_older_than(almost_old, 30) is False
+
+    def test_force_create_calls_ec2(self, mock_boto3, mocker):
+        mock_ec2 = MagicMock()
+        mock_ec2.create_snapshot.return_value = {"SnapshotId": "snap-123"}
+        mocker.patch("staker.snapshot.boto3.client", return_value=mock_ec2)
+
+        snapshot = Snapshot()
+        snapshot.volume_id = "vol-abc"
+        result = snapshot.force_create()
+
+        mock_ec2.create_snapshot.assert_called_once()
+        assert result["SnapshotId"] == "snap-123"
+
+    def test_get_snapshots(self, mock_boto3, mocker):
+        mock_ec2 = MagicMock()
+        mock_ec2.describe_snapshots.return_value = {
+            "Snapshots": [{"SnapshotId": "snap-1"}, {"SnapshotId": "snap-2"}]
+        }
+        mocker.patch("staker.snapshot.boto3.client", return_value=mock_ec2)
+
+        snapshot = Snapshot()
+        snapshots = snapshot._get_snapshots()
+
+        assert len(snapshots) == 2
+        assert snapshots[0]["SnapshotId"] == "snap-1"
+
+    def test_find_most_recent_empty(self, mock_boto3):
+        snapshot = Snapshot()
+        result = snapshot._find_most_recent([])
+        assert result is None
+
+    def test_find_most_recent_returns_newest(self, mock_boto3):
+        snapshot = Snapshot()
+        snaps = [
+            {"SnapshotId": "old", "StartTime": datetime.utcnow() - timedelta(days=10)},
+            {"SnapshotId": "new", "StartTime": datetime.utcnow()},
+            {"SnapshotId": "mid", "StartTime": datetime.utcnow() - timedelta(days=5)},
+        ]
+        result = snapshot._find_most_recent(snaps)
+        assert result["SnapshotId"] == "new"
+
+    def test_put_param(self, mock_boto3, mocker):
+        mock_ssm = MagicMock()
+        mocker.patch("staker.snapshot.boto3.client", return_value=mock_ssm)
+
+        snapshot = Snapshot()
+        snapshot._put_param("snap-123")
+
+        mock_ssm.put_parameter.assert_called_once()
+
+    def test_get_param_returns_value(self, mock_boto3, mocker):
+        mock_ssm = MagicMock()
+        mock_ssm.get_parameter.return_value = {"Parameter": {"Value": "snap-xyz"}}
+        mocker.patch("staker.snapshot.boto3.client", return_value=mock_ssm)
+
+        snapshot = Snapshot()
+        result = snapshot._get_param()
+
+        assert result == "snap-xyz"
+
+    def test_get_param_returns_none_on_error(self, mock_boto3, mocker):
+        mock_ssm = MagicMock()
+        mock_ssm.get_parameter.side_effect = Exception("Not found")
+        mocker.patch("staker.snapshot.boto3.client", return_value=mock_ssm)
+
+        snapshot = Snapshot()
+        result = snapshot._get_param()
+
+        assert result is None
+
+    def test_purge_deletes_old_snapshots(self, mock_boto3, mocker):
+        mock_ec2 = MagicMock()
+        mocker.patch("staker.snapshot.boto3.client", return_value=mock_ec2)
+        mocker.patch("staker.snapshot.MAX_SNAPSHOT_DAYS", 30)
+
+        snapshot = Snapshot()
+        old_snap = {
+            "SnapshotId": "snap-old",
+            "StartTime": datetime.utcnow() - timedelta(days=100),
+        }
+        exceptions = set()
+
+        snapshot._purge([old_snap], exceptions)
+
+        mock_ec2.delete_snapshot.assert_called_once_with(SnapshotId="snap-old")
+
+    def test_purge_keeps_exceptions(self, mock_boto3, mocker):
+        mock_ec2 = MagicMock()
+        mocker.patch("staker.snapshot.boto3.client", return_value=mock_ec2)
+        mocker.patch("staker.snapshot.MAX_SNAPSHOT_DAYS", 30)
+
+        snapshot = Snapshot()
+        old_snap = {
+            "SnapshotId": "snap-protected",
+            "StartTime": datetime.utcnow() - timedelta(days=100),
+        }
+        exceptions = {"snap-protected"}
+
+        snapshot._purge([old_snap], exceptions)
+
+        mock_ec2.delete_snapshot.assert_not_called()
