@@ -1,4 +1,4 @@
-.PHONY: install lint test build run deploy clean
+.PHONY: install lint format test build run kill deploy clean
 
 # Install dependencies
 install:
@@ -20,11 +20,15 @@ test:
 
 # Build Docker image
 build:
-	docker build -t eth-staker --build-arg DEPLOY_ENV=$(DEPLOY_ENV) --build-arg ARCH=$(ARCH) .
+	./scripts/build.sh
 
-# Run locally (requires DEPLOY_ENV and ETH_ADDR)
+# Run Docker container
 run:
-	uv run python Staker.py
+	./scripts/run.sh
+
+# Stop Docker container gracefully
+kill:
+	./scripts/kill.sh
 
 # Deploy to AWS
 deploy:

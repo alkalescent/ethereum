@@ -91,22 +91,25 @@ make test
 ### Build Docker Image
 
 ```bash
-DEPLOY_ENV=dev ARCH=arm64 make build
+make build
 ```
 
-### Run Locally
+### Run Docker Container
 
 ```bash
-export DEPLOY_ENV=dev
-export ETH_ADDR=0xYourAddress
 make run
+```
+
+### Stop Container
+
+```bash
+make kill
 ```
 
 ### Deploy to AWS
 
 ```bash
 make deploy
-# or: ./scripts/deploy.sh
 ```
 
 ## MEV Relays
