@@ -1,7 +1,6 @@
 """Tests for Environment classes."""
 
-import pytest
-from Environment import Environment, AWSEnvironment, LocalEnvironment
+from Environment import AWSEnvironment, LocalEnvironment
 
 
 class TestAWSEnvironment:
@@ -41,6 +40,7 @@ class TestLocalEnvironment:
 
     def test_data_prefix_is_home(self):
         import os
+
         env = LocalEnvironment()
         assert env.get_data_prefix() == os.path.expanduser("~")
 

@@ -1,17 +1,19 @@
+import logging
 import os
-import sys
 import select
 import signal
-import logging
-import requests
-from time import time, sleep
 import subprocess
-from random import choice
-from rich.console import Console
+import sys
 from glob import glob
-from Constants import DEPLOY_ENV, AWS, SNAPSHOT_DAYS, DEV, KILL_TIME, ETH_ADDR, DOCKER, VPN
-from Backup import Snapshot, SnapshotManager, NoOpSnapshotManager
-from Environment import Environment, AWSEnvironment, LocalEnvironment
+from random import choice
+from time import sleep, time
+
+import requests
+from rich.console import Console
+
+from Backup import NoOpSnapshotManager, Snapshot, SnapshotManager
+from Constants import AWS, DEV, DOCKER, ETH_ADDR, KILL_TIME, SNAPSHOT_DAYS, VPN
+from Environment import AWSEnvironment, Environment, LocalEnvironment
 from MEV import Booster
 
 home_dir = os.path.expanduser("~")
@@ -21,49 +23,44 @@ print = console.print
 
 
 class Node:
-    def __init__(
-        self,
-        env: Environment,
-        snapshot: SnapshotManager,
-        booster: Booster | None = None
-    ):
+    def __init__(self, env: Environment, snapshot: SnapshotManager, booster: Booster | None = None):
         self.env = env
         self.snapshot = snapshot
         self.booster = booster or Booster()
-        
-        on_mac = platform == 'darwin'
+
+        on_mac = platform == "darwin"
         prefix = env.get_data_prefix() if DOCKER else home_dir
         geth_dir_base = f"/{'Library/Ethereum' if on_mac else '.ethereum'}"
         prysm_dir_base = f"/{'Library/Eth2' if on_mac else '.eth2'}"
         prysm_wallet_postfix = f"{'V' if on_mac else 'v'}alidators/prysm-wallet-v2"
-        geth_dir_postfix = '/holesky' if DEV else ''
+        geth_dir_postfix = "/holesky" if DEV else ""
 
         self.geth_data_dir = f"{prefix}{geth_dir_base}{geth_dir_postfix}"
         self.prysm_data_dir = f"{prefix}{prysm_dir_base}"
         self.prysm_wallet_dir = f"{self.prysm_data_dir}{prysm_wallet_postfix}"
 
-        ipc_postfix = '/geth.ipc'
+        ipc_postfix = "/geth.ipc"
         self.ipc_path = self.geth_data_dir + ipc_postfix
         self.kill_in_progress = False
         self.terminating = False
         self.processes = []
         self.logs_file = env.get_logs_path()
-        with open(self.logs_file, 'w') as _:
+        with open(self.logs_file, "w") as _:
             pass
 
     def run_cmd(self, cmd):
         print(f"Running cmd: {' '.join(cmd)}")
         process = subprocess.Popen(
-            cmd,
-            shell=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT
+            cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
         )
         return process
 
     def execution(self):
         args = [
-            '--http', '--http.api', 'eth,net,engine,admin', '--state.scheme=path',
+            "--http",
+            "--http.api",
+            "eth,net,engine,admin",
+            "--state.scheme=path",
             # metrics flags
             # '--metrics', '--pprof',
             # '--metrics.expensive',
@@ -80,27 +77,27 @@ class Node:
                 # f"--maxpeers={MAX_PEERS}"
             ]
 
-        cmd = ['geth'] + args
+        cmd = ["geth"] + args
         return self.run_cmd(cmd)
 
     def consensus(self):
         args = [
-            '--accept-terms-of-use',
-            f'--execution-endpoint={self.ipc_path}',
-            f'--suggested-fee-recipient={ETH_ADDR}',
-            '--blob-storage-layout=by-epoch',
+            "--accept-terms-of-use",
+            f"--execution-endpoint={self.ipc_path}",
+            f"--suggested-fee-recipient={ETH_ADDR}",
+            "--blob-storage-layout=by-epoch",
             # alternatively http://127.0.0.1:18550
-            '--http-mev-relay=http://localhost:18550',
-            '--enable-backfill',
+            "--http-mev-relay=http://localhost:18550",
+            "--enable-backfill",
         ]
 
-        prysm_dir = './consensus/prysm'
+        prysm_dir = "./consensus/prysm"
 
         if DEV:
             args.append("--holesky")
             args.append(f"--genesis-state={prysm_dir}/genesis.ssz")
         else:
-            args.append('--mainnet')
+            args.append("--mainnet")
 
         if DOCKER:
             args += [
@@ -112,96 +109,80 @@ class Node:
         if p2p_host:
             args += [f"--p2p-host-dns={p2p_host}"]
 
-        state_filename = glob(f'{prysm_dir}/state*.ssz')[0]
-        block_filename = glob(f'{prysm_dir}/block*.ssz')[0]
+        state_filename = glob(f"{prysm_dir}/state*.ssz")[0]
+        block_filename = glob(f"{prysm_dir}/block*.ssz")[0]
         args += [
-            f'--checkpoint-state={state_filename}',
-            f'--checkpoint-block={block_filename}',
+            f"--checkpoint-state={state_filename}",
+            f"--checkpoint-block={block_filename}",
             "--checkpoint-sync-url=https://sync-mainnet.beaconcha.in",
             "--genesis-beacon-api-url=https://sync-mainnet.beaconcha.in",
         ]
-        cmd = ['beacon-chain'] + args
+        cmd = ["beacon-chain"] + args
         return self.run_cmd(cmd)
 
     def validation(self):
         args = [
-            '--accept-terms-of-use',
+            "--accept-terms-of-use",
             # ENABLE THIS FOR MEV
-            '--enable-builder',
-            f'--wallet-dir={self.prysm_wallet_dir}',
-            f'--suggested-fee-recipient={ETH_ADDR}',
-            f'--wallet-password-file={self.prysm_wallet_dir}/password.txt'
+            "--enable-builder",
+            f"--wallet-dir={self.prysm_wallet_dir}",
+            f"--suggested-fee-recipient={ETH_ADDR}",
+            f"--wallet-password-file={self.prysm_wallet_dir}/password.txt",
         ]
 
         if DEV:
             args.append("--holesky")
         else:
-            args.append('--mainnet')
+            args.append("--mainnet")
 
-        cmd = ['validator'] + args
+        cmd = ["validator"] + args
         return self.run_cmd(cmd)
 
     def mev(self):
-        args = ['-relay-check']
+        args = ["-relay-check"]
         if DEV:
             args.append("-holesky")
         else:
-            args.append('-mainnet')
+            args.append("-mainnet")
 
-        args += ['-relays', ','.join(self.relays)]
-        cmd = ['mev-boost'] + args
+        args += ["-relays", ",".join(self.relays)]
+        cmd = ["mev-boost"] + args
         return self.run_cmd(cmd)
 
-
-
     def vpn(self):
-        VPN_USER = os.environ['VPN_USER']
-        VPN_PASS = os.environ['VPN_PASS']
-        with open('vpn_creds.txt', 'w') as file:
-            file.write(f'{VPN_USER}\n{VPN_PASS}')
-        cfg = choice(glob('config/us*.tcp.ovpn'))
-        args = ['--config', cfg,
-                '--auth-user-pass', 'vpn_creds.txt']
-        cmd = ['openvpn'] + args
+        VPN_USER = os.environ["VPN_USER"]
+        VPN_PASS = os.environ["VPN_PASS"]
+        with open("vpn_creds.txt", "w") as file:
+            file.write(f"{VPN_USER}\n{VPN_PASS}")
+        cfg = choice(glob("config/us*.tcp.ovpn"))
+        args = ["--config", cfg, "--auth-user-pass", "vpn_creds.txt"]
+        cmd = ["openvpn"] + args
         return self.run_cmd(cmd)
 
     def start(self):
         processes = []
         if VPN:
+
             def get_ip():
-                return requests.get('https://4.tnedi.me').text
+                return requests.get("https://4.tnedi.me").text
+
             start_ip = get_ip()
-            processes.append({
-                'process': self.vpn(),
-                'prefix': 'xxx OPENVPN__ xxx'
-            })
+            processes.append({"process": self.vpn(), "prefix": "xxx OPENVPN__ xxx"})
             while start_ip == get_ip():
-                print('Waiting for VPN...')
+                print("Waiting for VPN...")
                 sleep(3)
         processes += [
-            {
-                'process': self.execution(),
-                'prefix': '<<< EXECUTION >>>'
-            },
-            {
-                'process': self.consensus(),
-                'prefix': "[[[ CONSENSUS ]]]"
-            },
-            {
-                'process': self.validation(),
-                'prefix': '(( _VALIDATION ))'
-            },
-            {
-                'process': self.mev(),
-                'prefix': "+++ MEV_BOOST +++"
-            },
+            {"process": self.execution(), "prefix": "<<< EXECUTION >>>"},
+            {"process": self.consensus(), "prefix": "[[[ CONSENSUS ]]]"},
+            {"process": self.validation(), "prefix": "(( _VALIDATION ))"},
+            {"process": self.mev(), "prefix": "+++ MEV_BOOST +++"},
         ]
 
         streams = []
         # Label processes with log prefix
         for meta in processes:
-            meta['process'].stdout.prefix = meta['prefix']
-            streams.append(meta['process'].stdout)
+            meta["process"].stdout.prefix = meta["prefix"]
+            streams.append(meta["process"].stdout)
 
         self.processes = processes
         self.streams = streams
@@ -209,49 +190,49 @@ class Node:
 
     def signal_processes(self, sig, prefix, hard=True):
         if hard or not self.kill_in_progress:
-            print(f'{prefix} all processes... [{"HARD" if hard else "SOFT"}]')
+            print(f"{prefix} all processes... [{'HARD' if hard else 'SOFT'}]")
             for meta in self.processes:
                 try:
-                    os.kill(meta['process'].pid, sig)
+                    os.kill(meta["process"].pid, sig)
                 except Exception as e:
                     logging.exception(e)
 
     def interrupt(self, **kwargs):
-        self.signal_processes(signal.SIGINT, 'Interrupting', **kwargs)
+        self.signal_processes(signal.SIGINT, "Interrupting", **kwargs)
 
     def terminate(self, **kwargs):
-        self.signal_processes(signal.SIGTERM, 'Terminating', **kwargs)
+        self.signal_processes(signal.SIGTERM, "Terminating", **kwargs)
 
     def kill(self, **kwargs):
-        self.signal_processes(signal.SIGKILL, 'Killing', **kwargs)
+        self.signal_processes(signal.SIGKILL, "Killing", **kwargs)
 
     def color(self, text):
         styles = {
-            'OPENVPN': 'orange',
-            'EXECUTION': 'bold magenta',
-            'CONSENSUS': 'bold cyan',
-            'VALIDATION': 'bold yellow',
-            'MEV_BOOST': 'bold green',
-            'INFO': 'green',
-            'WARN': 'bright_yellow',
-            'WARNING': 'bright_yellow',
-            'ERROR': 'bright_red',
-            'level=info': 'green',
-            'level=warning': 'bright_yellow',
-            'level=error': 'bright_red'
+            "OPENVPN": "orange",
+            "EXECUTION": "bold magenta",
+            "CONSENSUS": "bold cyan",
+            "VALIDATION": "bold yellow",
+            "MEV_BOOST": "bold green",
+            "INFO": "green",
+            "WARN": "bright_yellow",
+            "WARNING": "bright_yellow",
+            "ERROR": "bright_red",
+            "level=info": "green",
+            "level=warning": "bright_yellow",
+            "level=error": "bright_red",
         }
         for key, style in styles.items():
-            text = text.replace(key, f'[{style}]{key}[/{style}]')
+            text = text.replace(key, f"[{style}]{key}[/{style}]")
         return text
 
     def print_line(self, prefix, line):
-        line = line.decode('UTF-8').strip()
+        line = line.decode("UTF-8").strip()
         if line:
-            log = f'{prefix} {line}'
+            log = f"{prefix} {line}"
             colored = self.color(log)
             print(colored if self.env.use_colored_logs() else log)
-            with open(self.logs_file, 'a') as file:
-                file.write(f'{log}\n')
+            with open(self.logs_file, "a") as file:
+                file.write(f"{log}\n")
             return log
 
     def stream_logs(self, rstreams):
@@ -259,18 +240,18 @@ class Node:
 
     def squeeze_logs(self, processes):
         for meta in processes:
-            stream = meta['process'].stdout
-            for line in iter(stream.readline, b''):
+            stream = meta["process"].stdout
+            for line in iter(stream.readline, b""):
                 self.print_line(stream.prefix, line)
 
     def interrupt_on_error(self, logs):
         for log in logs:
-            if log and 'Beacon backfilling failed' in log:
+            if log and "Beacon backfilling failed" in log:
                 self.interrupt(hard=False)
                 return True
 
     def poll_processes(self, processes):
-        return (meta['process'].poll() is not None for meta in processes)
+        return (meta["process"].poll() is not None for meta in processes)
 
     def all_processes_are_dead(self, processes):
         return all(self.poll_processes(processes))
@@ -284,6 +265,7 @@ class Node:
             while not self.all_processes_are_dead(processes) and time() - start < KILL_TIME:
                 sleep(1)
             return self.all_processes_are_dead(processes)
+
         if not wait_for_exit():
             self.terminate(hard=hard)
         if not wait_for_exit():
@@ -308,10 +290,9 @@ class Node:
 
             while True:
                 rstreams, _, _ = select.select(streams, [], [])
-                backup_is_recent = not self.snapshot.is_older_than(
-                    self.most_recent, SNAPSHOT_DAYS)
+                backup_is_recent = not self.snapshot.is_older_than(self.most_recent, SNAPSHOT_DAYS)
                 if not backup_is_recent and not sent_interrupt:
-                    print('Pausing node to initiate snapshot.')
+                    print("Pausing node to initiate snapshot.")
                     self.interrupt(hard=False)
                     sent_interrupt = True
 
@@ -326,8 +307,12 @@ class Node:
     def stop(self):
         self.kill_in_progress = True
         self.handle_gracefully(self.processes, hard=True)
-        print('Node stopped')
-        if self.env.should_manage_snapshots() and self.snapshot.instance_is_draining() and not self.terminating:
+        print("Node stopped")
+        if (
+            self.env.should_manage_snapshots()
+            and self.snapshot.instance_is_draining()
+            and not self.terminating
+        ):
             self.snapshot.force_create()
             self.snapshot.update()
         exit(0)

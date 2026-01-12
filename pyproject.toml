@@ -14,4 +14,21 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-mock",
+    "ruff",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = ["vpn/", "scripts/"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]  # Line too long - handled by formatter
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

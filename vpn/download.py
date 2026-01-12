@@ -1,11 +1,12 @@
 import os
 import shutil
-from glob import glob
-from zipfile import ZipFile
-import geoip2.database
 import urllib.request
-from pathlib import Path
+from glob import glob
 from multiprocessing import Pool
+from pathlib import Path
+from zipfile import ZipFile
+
+import geoip2.database
 
 CONFIG_DIR = 'config'
 DB_URL = "https://git.io/GeoLite2-City.mmdb"
@@ -43,7 +44,7 @@ def multidelete(paths):
 
 
 def geolocate(filename):
-    with open(filename, 'r') as file:
+    with open(filename) as file:
         lines = file.readlines()
         for line in lines:
             if line.startswith('remote '):

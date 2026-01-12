@@ -24,6 +24,7 @@ A complete Ethereum validator infrastructure running **Geth** (execution) + **Pr
 | File | Purpose |
 |------|---------|
 | `Staker.py` | Main orchestrator - starts/monitors all processes, handles signals |
+| `Environment.py` | Runtime abstraction for AWS vs local environments |
 | `Backup.py` | EBS snapshot management for persistence |
 | `MEV.py` | Dynamically selects reliable MEV relays |
 | `Constants.py` | Configuration and relay lists |
@@ -32,9 +33,10 @@ A complete Ethereum validator infrastructure running **Geth** (execution) + **Pr
 
 ## Prerequisites
 
+- [uv](https://docs.astral.sh/uv/) (Python package manager)
 - Docker
 - AWS CLI (configured with appropriate permissions)
-- Python 3.10+
+- Python 3.11+
 
 ## Configuration
 
@@ -56,37 +58,55 @@ A complete Ethereum validator infrastructure running **Geth** (execution) + **Pr
 | 13000 | TCP | Prysm P2P |
 | 12000 | UDP | Prysm P2P |
 
-## Quick Start
+## Development
 
-### Local Development
+### Install Dependencies
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+make install
+# or: uv sync --all-groups
+```
 
-# Set environment
+### Lint
+
+```bash
+make lint
+# or: uv run ruff check . && uv run ruff format --check .
+```
+
+### Format
+
+```bash
+make format
+# or: uv run ruff check --fix . && uv run ruff format .
+```
+
+### Test
+
+```bash
+make test
+# or: uv run pytest tests/ -v
+```
+
+### Build Docker Image
+
+```bash
+DEPLOY_ENV=dev ARCH=arm64 make build
+```
+
+### Run Locally
+
+```bash
 export DEPLOY_ENV=dev
 export ETH_ADDR=0xYourAddress
-
-# Run (requires geth, beacon-chain, validator, mev-boost in PATH)
-python Staker.py
+make run
 ```
 
-### Docker
+### Deploy to AWS
 
 ```bash
-# Build
-./scripts/build.sh
-
-# Run
-./scripts/run.sh
-```
-
-### AWS Deployment
-
-```bash
-# Deploy CloudFormation stack
-DEPLOY_ENV=prod ./scripts/deploy.sh
+make deploy
+# or: ./scripts/deploy.sh
 ```
 
 ## MEV Relays

@@ -1,8 +1,9 @@
 import os
+from time import sleep
+
 import boto3
 import requests
-from time import sleep
-from dotenv import load_dotenv, find_dotenv
+from dotenv import find_dotenv, load_dotenv
 
 load_dotenv(find_dotenv('config.env'))
 
