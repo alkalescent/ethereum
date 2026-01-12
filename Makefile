@@ -18,6 +18,10 @@ format:
 test:
 	uv run pytest tests/ -v
 
+# Run tests with coverage
+cov:
+	uv run pytest tests/ -v --cov --cov-report=term-missing
+
 # Build Docker image
 build:
 	./scripts/build.sh
