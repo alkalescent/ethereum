@@ -86,7 +86,7 @@ python Staker.py
 
 ```bash
 # Deploy CloudFormation stack
-DEPLOY_ENV=prod ./scripts/deploy_stack.sh
+DEPLOY_ENV=prod ./scripts/deploy.sh
 ```
 
 ## MEV Relays

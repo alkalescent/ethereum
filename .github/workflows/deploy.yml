@@ -88,4 +88,4 @@ jobs:
           " >> "${ParamsFile}"
 
       - name: Update ECS stack
-        run: scripts/deploy_stack.sh
+        run: scripts/deploy.sh
