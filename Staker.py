@@ -172,9 +172,18 @@ class Node:
         processes = []
         if VPN:
 
+            domains = ["4.ident.me", "4.tnedi.me"]
+            domain_idx = 0
+
             def get_ip():
-                sld = "ident"
-                return requests.get(f"https://4.{sld[::-1]}.me", timeout=5).text
+                nonlocal domain_idx
+                while True:
+                    domain = domains[domain_idx]
+                    try:
+                        return requests.get(f"https://{domain}", timeout=5).text
+                    except requests.exceptions.RequestException as e:
+                        print(f"Failed to reach {domain}: {e}, trying alternate...")
+                        domain_idx = (domain_idx + 1) % len(domains)
 
             start_ip = get_ip()
             vpn_connected = False
