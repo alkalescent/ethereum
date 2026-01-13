@@ -1,6 +1,9 @@
 # syntax=docker/dockerfile:1
-# Base image
-FROM ubuntu:24.04
+
+# =============================================================================
+# BASE STAGE - Common setup for all stages
+# =============================================================================
+FROM ubuntu:24.04 AS base
 
 # Configure env vars
 ARG DEPLOY_ENV
@@ -19,7 +22,6 @@ ENV EXTRA_DIR "${ETH_DIR}${EXTRA_DIR_BASE}"
 ENV PRYSM_DIR_BASE "/consensus/prysm"
 ENV PRYSM_DIR "${ETH_DIR}${PRYSM_DIR_BASE}"
 
-
 # Install deps
 RUN apt-get update && \
     apt-get install -y python3 git curl bash
@@ -28,12 +30,42 @@ RUN apt-get update && \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:${PATH}"
 
-# Install Python dependencies with uv
 WORKDIR "${ETH_DIR}"
+
+# =============================================================================
+# TEST STAGE - Run lint and coverage checks
+# =============================================================================
+FROM base AS test
+
+# Copy project files needed for testing
+COPY pyproject.toml uv.lock Makefile ./
+COPY src/ src/
+COPY tests/ tests/
+
+# Install all dependencies including dev
+RUN uv sync --frozen
+
+# Run lint and coverage checks
+RUN uv run ruff check src tests
+RUN uv run pytest --cov=src/staker --cov-report=term-missing --cov-fail-under=95
+
+# Create a marker file to prove tests passed
+RUN touch /tmp/.tests_passed
+
+# =============================================================================
+# PRODUCTION STAGE - Final runtime image
+# =============================================================================
+FROM base AS production
+
+# This COPY ensures test stage runs before production by default
+# It copies the test marker file (will fail build if tests failed)
+COPY --from=test /tmp/.tests_passed /tmp/.tests_passed
+
+# Install Python dependencies (runtime only)
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
-# # Download geth (execution)
+# Download geth (execution)
 RUN mkdir -p "${EXEC_DIR}"
 WORKDIR "${EXEC_DIR}"
 ENV PLATFORM_ARCH "linux-${ARCH}"
