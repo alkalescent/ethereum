@@ -238,6 +238,15 @@ class Node:
         cmd = ["openvpn"] + args
         return self._run_cmd(cmd), creds_path
 
+    def _cleanup_creds(self, path: str | None) -> None:
+        """Remove credentials file if it exists.
+
+        Args:
+            path: Path to the credentials file, or None.
+        """
+        if path and os.path.exists(path):
+            os.unlink(path)
+
     def _wait_for_vpn(self) -> list[dict]:
         """Wait for VPN connection with timeout and retry.
 
@@ -266,15 +275,12 @@ class Node:
                 print(f"VPN connection timed out after {VPN_TIMEOUT}s, retrying...")
                 os.kill(vpn_process.pid, signal.SIGKILL)
                 processes.pop()
-                # Clean up creds file on failed attempt
-                if creds_path and os.path.exists(creds_path):
-                    os.unlink(creds_path)
+                self._cleanup_creds(creds_path)
             else:
                 vpn_connected = True
 
         # Clean up creds file after VPN connects (OpenVPN has already read it)
-        if creds_path and os.path.exists(creds_path):
-            os.unlink(creds_path)
+        self._cleanup_creds(creds_path)
 
         return processes
 
