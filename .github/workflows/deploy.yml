@@ -85,4 +85,5 @@ jobs:
           " >> "${ParamsFile}"
 
       - name: Update ECS stack
-        run: scripts/deploy.sh
+        run: make deploy $(if [ "${{ vars.AWS }}" != "true" ]; then echo "DRY=1"; fi)
+        shell: bash

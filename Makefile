@@ -38,13 +38,9 @@ run:
 kill:
 	./scripts/kill.sh
 
-# Deploy to AWS
+# Deploy to AWS (use DRY=1 for dry-run)
 deploy:
-	./scripts/deploy.sh
-
-# Dry-run deploy (changeset only, no execution)
-deploy-dry:
-	DRY_RUN=true ./scripts/deploy.sh
+	DRY_RUN=$(if $(DRY),true,false) ./scripts/deploy.sh
 
 # Clean build artifacts
 clean:
