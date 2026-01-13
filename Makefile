@@ -1,5 +1,8 @@
 .PHONY: install lint format test build run kill deploy clean
 
+ci:
+	uv sync --frozen
+
 # Install dependencies
 install:
 	uv sync --all-groups

@@ -24,7 +24,7 @@ ENV PRYSM_DIR "${ETH_DIR}${PRYSM_DIR_BASE}"
 
 # Install deps
 RUN apt-get update && \
-    apt-get install -y python3 git curl bash
+    apt-get install -y python3 git curl bash make
 
 # Install uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -42,24 +42,18 @@ COPY pyproject.toml uv.lock Makefile ./
 COPY src/ src/
 COPY tests/ tests/
 
-# Install all dependencies including dev
-RUN uv sync --frozen
-
-# Run lint and coverage checks
-RUN uv run ruff check src tests
-RUN uv run pytest --cov=src/staker --cov-report=term-missing --cov-fail-under=95
+# Install dependencies and run checks using Makefile
+RUN make ci
+RUN make lint
+RUN make cov
 
 # Create a marker file to prove tests passed
 RUN touch /tmp/.tests_passed
 
 # =============================================================================
-# PRODUCTION STAGE - Final runtime image
+# DEPLOY STAGE - Runtime image (can be targeted directly to skip tests)
 # =============================================================================
-FROM base AS production
-
-# This COPY ensures test stage runs before production by default
-# It copies the test marker file (will fail build if tests failed)
-COPY --from=test /tmp/.tests_passed /tmp/.tests_passed
+FROM base AS deploy
 
 # Install Python dependencies (runtime only)
 COPY pyproject.toml uv.lock ./
@@ -124,3 +118,12 @@ COPY src/staker src/staker
 ENV PYTHONPATH="${ETH_DIR}/src"
 EXPOSE 30303/tcp 30303/udp 13000/tcp 12000/udp
 ENTRYPOINT ["python3", "-m", "staker.node"]
+
+# =============================================================================
+# DEFAULT STAGE - Ensures tests pass before deploy
+# =============================================================================
+FROM deploy AS default
+
+# This COPY creates a dependency on the test stage
+# Build will fail if tests didn't pass
+COPY --from=test /tmp/.tests_passed /tmp/.tests_passed
