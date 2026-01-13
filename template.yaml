@@ -45,6 +45,8 @@ Conditions:
     !Equals [!Ref Arch, amd64]
   IsProd:
     !Equals [!Ref DeployEnv, prod]
+  HasValidSnapshot:
+    !Not [!Equals [!GetAtt SnapshotValidation.SnapshotId, ""]]
 
 Resources:
   # EIPDNSRecord:
@@ -120,6 +122,95 @@ Resources:
       InstanceProfileName: !Sub "${DeployEnv}StakingInstanceProfile"
       Roles: 
         - !Sub "${DeployEnv}StakingInstanceRole"
+
+  # Snapshot Validation Lambda - checks if SSM param references existing snapshot
+  SnapshotValidatorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${DeployEnv}SnapshotValidatorRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SnapshotValidatorPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${DeployEnv}_staking_snapshot"
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeSnapshots
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${DeployEnv}SnapshotValidator:*"
+
+  SnapshotValidatorFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: SnapshotValidatorRole
+    Properties:
+      FunctionName: !Sub "${DeployEnv}SnapshotValidator"
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !GetAtt SnapshotValidatorRole.Arn
+      Timeout: 30
+      Environment:
+        Variables:
+          PARAM_NAME: !Sub "${DeployEnv}_staking_snapshot"
+      Code:
+        ZipFile: |
+          import boto3
+          import cfnresponse
+          import os
+
+          def handler(event, context):
+              """Check if SSM param exists and references a valid snapshot."""
+              if event['RequestType'] == 'Delete':
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+                  return
+
+              ssm = boto3.client('ssm')
+              ec2 = boto3.client('ec2')
+              param_name = os.environ['PARAM_NAME']
+              
+              try:
+                  # Get SSM parameter
+                  response = ssm.get_parameter(Name=param_name)
+                  snapshot_id = response['Parameter']['Value']
+                  
+                  if not snapshot_id:
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {'SnapshotId': ''})
+                      return
+                  
+                  # Check if snapshot exists
+                  ec2.describe_snapshots(SnapshotIds=[snapshot_id])
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {'SnapshotId': snapshot_id})
+                  
+              except ssm.exceptions.ParameterNotFound:
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {'SnapshotId': ''})
+              except ec2.exceptions.ClientError:
+                  # Snapshot doesn't exist
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {'SnapshotId': ''})
+              except Exception as e:
+                  print(f"Error: {e}")
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {'SnapshotId': ''})
+
+  SnapshotValidation:
+    Type: Custom::SnapshotValidator
+    DependsOn: SnapshotValidatorFunction
+    Properties:
+      ServiceToken: !GetAtt SnapshotValidatorFunction.Arn
+
   TaskRole:
     Type: AWS::IAM::Role
     Properties:
@@ -322,15 +413,9 @@ Resources:
             Ebs: 
               DeleteOnTermination: true
               VolumeSize: !If [IsProd, 1500, 500]
-              # can't use io2 because of cost
               VolumeType: gp3
-              # Iops: 10000
-              # 10 - 15k is laptop/desktop SSD throughput
-              # Throughput: 1000
-              # SnapshotId: !Sub '{{resolve:ssm:${DeployEnv}_staking_snapshot}}'
-                # Condition: 
-              # try defining cf param as ssm param val or 'default' / pseudo AWS::NoValue
-              # https://www.jforte.me/posts/create-ebs-volume-snapshot-condtions-aws-cdk/
+              # Use snapshot if Lambda validated it exists, otherwise create fresh volume
+              SnapshotId: !If [HasValidSnapshot, !GetAtt SnapshotValidation.SnapshotId, !Ref "AWS::NoValue"]
         DisableApiStop: false
         DisableApiTermination: false
         EbsOptimized: true
