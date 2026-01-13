@@ -173,6 +173,9 @@ class Snapshot(SnapshotManager):
     def _get_prefix_id(self, prefix: str) -> str:
         """Read an ID file from the EBS volume.
 
+        Note: These files are created by the CloudFormation template's
+        user data script (see template.yaml UserData).
+
         Args:
             prefix: The prefix (VOLUME or INSTANCE).
 
