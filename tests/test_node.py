@@ -410,8 +410,10 @@ class TestNodeVPNWait:
         """Test VPN connection success on first try."""
         # Need: start_ip, check in while loop, check after loop
         mocker.patch("staker.node.get_public_ip", side_effect=["1.1.1.1", "2.2.2.2", "2.2.2.2"])
-        mocker.patch.object(node, "_vpn", return_value=MagicMock())
+        mocker.patch.object(node, "_vpn", return_value=(MagicMock(), "/tmp/creds"))
         mocker.patch("staker.node.sleep")
+        mocker.patch("os.path.exists", return_value=True)
+        mocker.patch("os.unlink")
 
         processes = node._wait_for_vpn()
 
@@ -429,9 +431,11 @@ class TestNodeVPNWait:
                 "2.2.2.2",  # final check
             ],
         )
-        mocker.patch.object(node, "_vpn", return_value=MagicMock())
+        mocker.patch.object(node, "_vpn", return_value=(MagicMock(), "/tmp/creds"))
         mock_sleep = mocker.patch("staker.node.sleep")
         mocker.patch("staker.node.VPN_TIMEOUT", 6)  # 2 sleep cycles
+        mocker.patch("os.path.exists", return_value=True)
+        mocker.patch("os.unlink")
 
         processes = node._wait_for_vpn()
 
@@ -449,7 +453,8 @@ class TestNodeVPNWait:
 
         def mock_vpn():
             vpn_call_count[0] += 1
-            return mock_proc1 if vpn_call_count[0] == 1 else mock_proc2
+            proc = mock_proc1 if vpn_call_count[0] == 1 else mock_proc2
+            return proc, f"/tmp/creds_{vpn_call_count[0]}"
 
         # IP stays same for first VPN attempt (triggers timeout),
         # then changes on second attempt
@@ -468,11 +473,15 @@ class TestNodeVPNWait:
         mocker.patch("staker.node.sleep")
         mock_kill = mocker.patch("os.kill")
         mocker.patch("staker.node.VPN_TIMEOUT", 0)  # Immediate timeout
+        mocker.patch("os.path.exists", return_value=True)
+        mock_unlink = mocker.patch("os.unlink")
 
         processes = node._wait_for_vpn()
 
         assert len(processes) == 1
         mock_kill.assert_called()
+        # Verify credentials were cleaned up
+        mock_unlink.assert_called()
 
 
 class TestNodeClientProcesses:

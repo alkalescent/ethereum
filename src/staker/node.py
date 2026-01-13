@@ -216,13 +216,13 @@ class Node:
         cmd = ["mev-boost"] + args
         return self._run_cmd(cmd)
 
-    def _vpn(self) -> subprocess.Popen:
+    def _vpn(self) -> tuple[subprocess.Popen, str]:
         """Start the OpenVPN client.
 
         Creates a secure temp file for credentials with restrictive permissions.
 
         Returns:
-            The openvpn process handle.
+            Tuple of (openvpn process handle, path to credentials file).
         """
         vpn_user = os.environ["VPN_USER"]
         vpn_pass = os.environ["VPN_PASS"]
@@ -236,7 +236,7 @@ class Node:
         cfg = choice(glob("config/us*.tcp.ovpn"))
         args = ["--config", cfg, "--auth-user-pass", creds_path]
         cmd = ["openvpn"] + args
-        return self._run_cmd(cmd)
+        return self._run_cmd(cmd), creds_path
 
     def _wait_for_vpn(self) -> list[dict]:
         """Wait for VPN connection with timeout and retry.
@@ -250,9 +250,10 @@ class Node:
         processes: list[dict] = []
         start_ip = get_public_ip()
         vpn_connected = False
+        creds_path = None
 
         while not vpn_connected:
-            vpn_process = self._vpn()
+            vpn_process, creds_path = self._vpn()
             processes.append({"process": vpn_process, "prefix": "xxx OPENVPN__ xxx"})
             elapsed = 0
 
@@ -265,8 +266,15 @@ class Node:
                 print(f"VPN connection timed out after {VPN_TIMEOUT}s, retrying...")
                 os.kill(vpn_process.pid, signal.SIGKILL)
                 processes.pop()
+                # Clean up creds file on failed attempt
+                if creds_path and os.path.exists(creds_path):
+                    os.unlink(creds_path)
             else:
                 vpn_connected = True
+
+        # Clean up creds file after VPN connects (OpenVPN has already read it)
+        if creds_path and os.path.exists(creds_path):
+            os.unlink(creds_path)
 
         return processes
 
