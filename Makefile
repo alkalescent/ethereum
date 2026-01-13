@@ -1,5 +1,6 @@
 .PHONY: install lint format test build run kill deploy clean
 
+# Install dependencies (frozen)
 ci:
 	uv sync --frozen
 
@@ -40,6 +41,10 @@ kill:
 # Deploy to AWS
 deploy:
 	./scripts/deploy.sh
+
+# Dry-run deploy (changeset only, no execution)
+deploy-dry:
+	DRY_RUN=true ./scripts/deploy.sh
 
 # Clean build artifacts
 clean:

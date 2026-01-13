@@ -14,6 +14,9 @@ jobs:
     env:
       DEPLOY_ENV: ${{ fromJSON('["dev", "prod"]')[github.ref_name == 'master'] }}
       ARCH: arm64
+      # Set AWS=true in repo variables to enable full deploy, otherwise dry-run
+      AWS: ${{ vars.AWS || 'false' }}
+      DRY_RUN: ${{ vars.AWS != 'true' }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
