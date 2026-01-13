@@ -1,22 +1,58 @@
 # Ethereum Staking Node
 
+[![PyPI version](https://img.shields.io/pypi/v/staker.svg)](https://pypi.org/project/staker/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A complete Ethereum validator infrastructure running **Geth** (execution) + **Prysm** (consensus) + **MEV-Boost** on AWS ECS.
 
 ## Architecture
 
+```mermaid
+graph TB
+    subgraph Node["staker.node (Process Orchestrator)"]
+        Geth["Geth<br/>(Execution)"]
+        Beacon["Beacon Chain<br/>(Consensus)"]
+        Validator["Validator"]
+        MEV["MEV-Boost"]
+        VPN["VPN<br/>(optional)"]
+    end
+    
+    subgraph AWS["AWS ECS (EC2 Mode)"]
+        EBS["EBS Volume<br/>(Blockchain Data)"]
+        Snapshot["EBS Snapshots<br/>(Backups)"]
+    end
+    
+    Geth --> EBS
+    Beacon --> EBS
+    Node --> AWS
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      staker.node                            │
-│                  (Process Orchestrator)                     │
-├──────────┬──────────┬──────────┬──────────┬────────────────┤
-│   Geth   │  Beacon  │Validator │MEV-Boost │   VPN (opt)    │
-│(Execution)│  Chain   │          │          │                │
-└──────────┴──────────┴──────────┴──────────┴────────────────┘
-                           │
-                    ┌──────┴──────┐
-                    │   AWS ECS   │
-                    │  (EC2 Mode) │
-                    └─────────────┘
+
+## 💖 Support
+
+Love this project? Your support means the world! ❤️
+
+| Network | Address |
+|---------|---------|
+| Bitcoin | `bc1qwn7ea6s8wqx66hl5rr2supk4kv7qtcxnlqcqfk` |
+| Ethereum | `0x7cdB1861AC1B4385521a6e16dF198e7bc43fDE5f` |
+| Monero | `463fMSWyDrk9DVQ8QCiAir8TQd4h3aRAiDGA8CKKjknGaip7cnHGmS7bQmxSiS2aYtE9tT31Zf7dSbK1wyVARNgA9pkzVxX` |
+| Base | `0x7cdB1861AC1B4385521a6e16dF198e7bc43fDE5f` |
+
+## 📦 Installation
+
+### PyPI (Recommended)
+
+```bash
+uv pip install staker
+```
+
+### From Source
+
+```bash
+git clone https://github.com/alkalescent/ethereum.git
+cd ethereum
+uv sync
 ```
 
 ## Project Structure
@@ -60,58 +96,16 @@ src/staker/
 
 ## Development
 
-### Install Dependencies
-
 ```bash
-make install
-```
-
-### Lint
-
-```bash
-make lint
-```
-
-### Format
-
-```bash
-make format
-```
-
-### Test
-
-```bash
-make test
-```
-
-### Test with Coverage
-
-```bash
-make cov
-```
-
-### Build Docker Image
-
-```bash
-make build
-```
-
-### Run Docker Container
-
-```bash
-make run
-```
-
-### Stop Container
-
-```bash
-make kill
-```
-
-### Deploy to AWS
-
-```bash
-make deploy
+make install   # Install dependencies
+make lint      # Run linting
+make format    # Format code
+make test      # Run tests
+make cov       # Run tests with coverage
+make build     # Build Docker image
+make run       # Run Docker container
+make kill      # Stop container gracefully
+make deploy    # Deploy to AWS
 ```
 
 ## MEV Relays
@@ -142,4 +136,4 @@ Relays are automatically tested on startup; unreliable ones are filtered out.
 
 ## License
 
-Private repository.
+MIT License - see [LICENSE](LICENSE) for details.
