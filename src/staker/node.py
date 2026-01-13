@@ -448,8 +448,9 @@ class Node:
                 self.terminating = True
                 self.snapshot.terminate()
                 while self.terminating:
-                    pass
-
+                    print("Waiting for stale EC2 instance to terminate...")
+                    sleep(5)
+                    
         while True:
             self.most_recent = self.snapshot.backup()
             self.relays = self.booster.get_relays()
