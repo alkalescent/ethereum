@@ -1,8 +1,7 @@
 """Tests for utility functions."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
 import requests
 
 from staker.utils import colorize_log, get_public_ip

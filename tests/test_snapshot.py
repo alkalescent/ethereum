@@ -1,11 +1,11 @@
 """Tests for snapshot management."""
 
-from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, patch
+from datetime import UTC, datetime, timedelta
+from unittest.mock import MagicMock
 
 import pytest
 
-from staker.snapshot import NoOpSnapshotManager, Snapshot, SnapshotManager
+from staker.snapshot import NoOpSnapshotManager, Snapshot
 
 
 class TestNoOpSnapshotManager:
@@ -54,18 +54,18 @@ class TestSnapshot:
 
     def test_is_older_than_recent(self, mock_boto3):
         snapshot = Snapshot()
-        recent_snap = {"StartTime": datetime.now(timezone.utc)}
+        recent_snap = {"StartTime": datetime.now(UTC)}
         assert snapshot.is_older_than(recent_snap, 30) is False
 
     def test_is_older_than_old(self, mock_boto3):
         snapshot = Snapshot()
-        old_snap = {"StartTime": datetime.now(timezone.utc) - timedelta(days=60)}
+        old_snap = {"StartTime": datetime.now(UTC) - timedelta(days=60)}
         assert snapshot.is_older_than(old_snap, 30) is True
 
     def test_is_older_than_exactly_at_limit(self, mock_boto3):
         snapshot = Snapshot()
         # Just under 30 days
-        almost_old = {"StartTime": datetime.now(timezone.utc) - timedelta(days=29, hours=23)}
+        almost_old = {"StartTime": datetime.now(UTC) - timedelta(days=29, hours=23)}
         assert snapshot.is_older_than(almost_old, 30) is False
 
     def test_force_create_calls_ec2(self, mock_boto3, mocker):
@@ -101,9 +101,9 @@ class TestSnapshot:
     def test_find_most_recent_returns_newest(self, mock_boto3):
         snapshot = Snapshot()
         snaps = [
-            {"SnapshotId": "old", "StartTime": datetime.now(timezone.utc) - timedelta(days=10)},
-            {"SnapshotId": "new", "StartTime": datetime.now(timezone.utc)},
-            {"SnapshotId": "mid", "StartTime": datetime.now(timezone.utc) - timedelta(days=5)},
+            {"SnapshotId": "old", "StartTime": datetime.now(UTC) - timedelta(days=10)},
+            {"SnapshotId": "new", "StartTime": datetime.now(UTC)},
+            {"SnapshotId": "mid", "StartTime": datetime.now(UTC) - timedelta(days=5)},
         ]
         result = snapshot._find_most_recent(snaps)
         assert result["SnapshotId"] == "new"
@@ -145,7 +145,7 @@ class TestSnapshot:
         snapshot = Snapshot()
         old_snap = {
             "SnapshotId": "snap-old",
-            "StartTime": datetime.now(timezone.utc) - timedelta(days=100),
+            "StartTime": datetime.now(UTC) - timedelta(days=100),
         }
         exceptions = set()
 
@@ -161,7 +161,7 @@ class TestSnapshot:
         snapshot = Snapshot()
         old_snap = {
             "SnapshotId": "snap-protected",
-            "StartTime": datetime.now(timezone.utc) - timedelta(days=100),
+            "StartTime": datetime.now(UTC) - timedelta(days=100),
         }
         exceptions = {"snap-protected"}
 
@@ -193,30 +193,36 @@ class TestSnapshot:
     def test_update_returns_true_when_refresh_needed(self, mock_boto3, mocker):
         """Test update method returning True when refresh is needed."""
         snapshot = Snapshot()
-        mocker.patch.object(snapshot, "_get_snapshots", return_value=[
-            {"SnapshotId": "snap-new", "StartTime": datetime.now(timezone.utc)}
-        ])
+        mocker.patch.object(
+            snapshot,
+            "_get_snapshots",
+            return_value=[{"SnapshotId": "snap-new", "StartTime": datetime.now(UTC)}],
+        )
         mocker.patch.object(snapshot, "_get_param", return_value="snap-old")
         mocker.patch.object(snapshot, "_put_param")
 
         snapshot.ec2.describe_launch_template_versions.return_value = {
-            "LaunchTemplateVersions": [{
-                "VersionNumber": 1,
-                "LaunchTemplateData": {
-                    "BlockDeviceMappings": [
-                        {"DeviceName": "/dev/sdx", "Ebs": {"SnapshotId": "snap-old"}}
-                    ]
+            "LaunchTemplateVersions": [
+                {
+                    "VersionNumber": 1,
+                    "LaunchTemplateData": {
+                        "BlockDeviceMappings": [
+                            {"DeviceName": "/dev/sdx", "Ebs": {"SnapshotId": "snap-old"}}
+                        ]
+                    },
                 }
-            }]
+            ]
         }
         snapshot.ec2.create_launch_template_version.return_value = {
             "LaunchTemplateVersion": {"VersionNumber": 2}
         }
         snapshot.auto.describe_auto_scaling_groups.return_value = {
-            "AutoScalingGroups": [{
-                "LaunchTemplate": {"Version": "1"},
-                "Instances": [{"InstanceId": "", "LaunchTemplate": {"Version": "1"}}]
-            }]
+            "AutoScalingGroups": [
+                {
+                    "LaunchTemplate": {"Version": "1"},
+                    "Instances": [{"InstanceId": "", "LaunchTemplate": {"Version": "1"}}],
+                }
+            ]
         }
 
         result = snapshot.update()
@@ -284,7 +290,7 @@ class TestSnapshot:
         """Test _get_curr_snapshot_id extracts snapshot ID."""
         snapshot = Snapshot()
         snapshot.instance_id = "i-123"
-        
+
         mocker.patch("staker.snapshot.AWS", True)
         snapshot.ec2.get_launch_template_data.return_value = {
             "LaunchTemplateData": {
@@ -302,15 +308,10 @@ class TestSnapshot:
     def test_get_curr_snapshot_id_returns_none_on_error(self, mock_boto3, mocker):
         """Test _get_curr_snapshot_id returns None on error."""
         snapshot = Snapshot()
-        
+
         mocker.patch("staker.snapshot.AWS", True)
         snapshot.ec2.get_launch_template_data.side_effect = Exception("API error")
-        
+
         result = snapshot._get_curr_snapshot_id()
 
         assert result is None
-
-
-
-
-

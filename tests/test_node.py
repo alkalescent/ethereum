@@ -2,8 +2,7 @@
 
 import os
 import signal
-import subprocess
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -349,7 +348,9 @@ class TestNodeRun:
     def test_start_with_vpn_enabled(self, node, mocker):
         """Test _start includes VPN when VPN=True."""
         mocker.patch("staker.node.VPN", True)
-        mocker.patch.object(node, "_wait_for_vpn", return_value=[{"process": MagicMock(), "prefix": "VPN"}])
+        mocker.patch.object(
+            node, "_wait_for_vpn", return_value=[{"process": MagicMock(), "prefix": "VPN"}]
+        )
         mocker.patch.object(node, "_execution", return_value=MagicMock(stdout=MagicMock()))
         mocker.patch.object(node, "_consensus", return_value=MagicMock(stdout=MagicMock()))
         mocker.patch.object(node, "_validation", return_value=MagicMock(stdout=MagicMock()))
@@ -359,7 +360,6 @@ class TestNodeRun:
 
         assert len(processes) == 5  # VPN + 4 clients
         node._wait_for_vpn.assert_called_once()
-
 
     def test_run_checks_snapshot_update(self, node, mocker):
         """Test run checks snapshot update on start."""
@@ -377,11 +377,11 @@ class TestNodeRun:
         mocker.patch.object(node.snapshot, "backup", return_value={"SnapshotId": "old"})
         mocker.patch.object(node.booster, "get_relays", return_value=[])
         mocker.patch.object(node, "_start", return_value=([], []))
-        
+
         # Snapshot is old - triggers pause
         mocker.patch.object(node.snapshot, "is_older_than", return_value=True)
         mock_interrupt = mocker.patch.object(node, "_interrupt")
-        
+
         # select returns empty, then logs are processed, then a process dies
         mocker.patch("staker.node.select.select", side_effect=[([], [], [])])
         mocker.patch.object(node, "_stream_logs", return_value=[])
@@ -393,8 +393,6 @@ class TestNodeRun:
             node.run()
 
         mock_interrupt.assert_called_with(hard=False)
-
-
 
 
 class TestNodeVPNWait:
@@ -422,12 +420,15 @@ class TestNodeVPNWait:
     def test_wait_for_vpn_waits_in_loop(self, node, mocker):
         """Test VPN wait loop sleeps while waiting."""
         # IP stays same for first check, changes on second
-        mocker.patch("staker.node.get_public_ip", side_effect=[
-            "1.1.1.1",  # start_ip
-            "1.1.1.1",  # check 1 - same, loop continues
-            "2.2.2.2",  # check 2 - different, exit loop
-            "2.2.2.2",  # final check
-        ])
+        mocker.patch(
+            "staker.node.get_public_ip",
+            side_effect=[
+                "1.1.1.1",  # start_ip
+                "1.1.1.1",  # check 1 - same, loop continues
+                "2.2.2.2",  # check 2 - different, exit loop
+                "2.2.2.2",  # final check
+            ],
+        )
         mocker.patch.object(node, "_vpn", return_value=MagicMock())
         mock_sleep = mocker.patch("staker.node.sleep")
         mocker.patch("staker.node.VPN_TIMEOUT", 6)  # 2 sleep cycles
@@ -443,15 +444,17 @@ class TestNodeVPNWait:
         mock_proc1.pid = 123
         mock_proc2 = MagicMock()
         mock_proc2.pid = 456
-        
+
         vpn_call_count = [0]
+
         def mock_vpn():
             vpn_call_count[0] += 1
             return mock_proc1 if vpn_call_count[0] == 1 else mock_proc2
-        
-        # IP stays same for first VPN attempt (triggers timeout), 
+
+        # IP stays same for first VPN attempt (triggers timeout),
         # then changes on second attempt
         ip_call_count = [0]
+
         def mock_get_ip():
             ip_call_count[0] += 1
             # First 5 calls all return same IP (start + while loop + after loop check)
@@ -459,7 +462,7 @@ class TestNodeVPNWait:
             if ip_call_count[0] <= 5:
                 return "1.1.1.1"
             return "2.2.2.2"
-        
+
         mocker.patch("staker.node.get_public_ip", side_effect=mock_get_ip)
         mocker.patch.object(node, "_vpn", side_effect=mock_vpn)
         mocker.patch("staker.node.sleep")
@@ -486,14 +489,14 @@ class TestNodeClientProcesses:
     def test_execution_includes_holesky_for_dev(self, node, mocker):
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
         node._execution()
-        
+
         call_args = mock_run.call_args[0][0]
         assert "--holesky" in call_args
 
     def test_execution_includes_datadir_for_docker(self, node, mocker):
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
         node._execution()
-        
+
         call_args = mock_run.call_args[0][0]
         assert any("--datadir=" in arg for arg in call_args)
 
@@ -501,14 +504,14 @@ class TestNodeClientProcesses:
         mocker.patch("staker.node.glob", return_value=["prysm/state.ssz"])
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
         node._consensus()
-        
+
         call_args = mock_run.call_args[0][0]
         assert any("checkpoint-sync-url" in arg for arg in call_args)
 
     def test_validation_includes_enable_builder(self, node, mocker):
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
         node._validation()
-        
+
         call_args = mock_run.call_args[0][0]
         assert "--enable-builder" in call_args
 
@@ -516,7 +519,7 @@ class TestNodeClientProcesses:
         node.relays = ["http://relay1", "http://relay2"]
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
         node._mev()
-        
+
         call_args = mock_run.call_args[0][0]
         assert "-relays" in call_args
         # Check that comma-separated relays are present
@@ -539,7 +542,7 @@ class TestNodeProductionMode:
         """Test execution uses --mainnet in production."""
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
         node._execution()
-        
+
         call_args = mock_run.call_args[0][0]
         assert "--mainnet" in call_args
         assert "--holesky" not in call_args
@@ -549,7 +552,7 @@ class TestNodeProductionMode:
         mocker.patch("staker.node.glob", return_value=["prysm/state.ssz"])
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
         node._consensus()
-        
+
         call_args = mock_run.call_args[0][0]
         assert "--mainnet" in call_args
         assert "--holesky" not in call_args
@@ -558,7 +561,7 @@ class TestNodeProductionMode:
         """Test validation uses --mainnet in production."""
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
         node._validation()
-        
+
         call_args = mock_run.call_args[0][0]
         assert "--mainnet" in call_args
         assert "--holesky" not in call_args
@@ -568,7 +571,7 @@ class TestNodeProductionMode:
         node.relays = ["http://relay"]
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
         node._mev()
-        
+
         call_args = mock_run.call_args[0][0]
         assert "-mainnet" in call_args
         assert "-holesky" not in call_args
@@ -577,12 +580,12 @@ class TestNodeProductionMode:
         """Test consensus includes p2p-host-dns when available."""
         mocker.patch("staker.node.glob", return_value=["prysm/state.ssz"])
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
-        
+
         # Mock environment to return a p2p host
         mocker.patch.object(node.env, "get_p2p_host_dns", return_value="node.example.com")
-        
+
         node._consensus()
-        
+
         call_args = mock_run.call_args[0][0]
         assert any("p2p-host-dns" in arg for arg in call_args)
 
@@ -603,7 +606,7 @@ class TestNodeVPN:
         mocker.patch("staker.node.glob", return_value=["config/us1.tcp.ovpn"])
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
         mocker.patch("staker.node.choice", return_value="config/us1.tcp.ovpn")
-        
+
         # Change to tmp dir to write creds file there
         original_dir = os.getcwd()
         os.chdir(tmp_path)
@@ -611,7 +614,7 @@ class TestNodeVPN:
             node._vpn()
         finally:
             os.chdir(original_dir)
-        
+
         mock_run.assert_called_once()
         assert "openvpn" in mock_run.call_args[0][0]
 
@@ -635,9 +638,9 @@ class TestNodeStart:
         mocker.patch.object(node, "_consensus", return_value=mock_proc)
         mocker.patch.object(node, "_validation", return_value=mock_proc)
         mocker.patch.object(node, "_mev", return_value=mock_proc)
-        
+
         processes, streams = node._start()
-        
+
         assert len(processes) == 4
         assert len(streams) == 4
 
@@ -648,9 +651,9 @@ class TestNodeStart:
         mocker.patch.object(node, "_consensus", return_value=mock_proc)
         mocker.patch.object(node, "_validation", return_value=mock_proc)
         mocker.patch.object(node, "_mev", return_value=mock_proc)
-        
+
         processes, _ = node._start()
-        
+
         prefixes = [p["prefix"] for p in processes]
         assert "<<< EXECUTION >>>" in prefixes
         assert "[[[ CONSENSUS ]]]" in prefixes
@@ -671,13 +674,13 @@ class TestNodeStreamLogs:
         mock_stream1 = MagicMock()
         mock_stream1.prefix = "PRE1"
         mock_stream1.readline.return_value = b"log1\n"
-        
+
         mock_stream2 = MagicMock()
         mock_stream2.prefix = "PRE2"
         mock_stream2.readline.return_value = b"log2\n"
-        
+
         result = node._stream_logs([mock_stream1, mock_stream2])
-        
+
         assert len(result) == 2
         assert "PRE1 log1" in result
         assert "PRE2 log2" in result
@@ -686,13 +689,11 @@ class TestNodeStreamLogs:
         mock_stream = MagicMock()
         mock_stream.prefix = "TEST"
         mock_stream.readline.side_effect = [b"line1\n", b"line2\n", b""]
-        
+
         mock_proc = MagicMock()
         mock_proc.stdout = mock_stream
-        
+
         node._squeeze_logs([{"process": mock_proc}])
-        
+
         # Verify readline was called until empty
         assert mock_stream.readline.call_count == 3
-
-
