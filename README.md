@@ -10,22 +10,40 @@ A complete Ethereum validator infrastructure running **Geth** (execution) + **Pr
 
 ```mermaid
 graph TB
-    subgraph Node["staker.node (Process Orchestrator)"]
-        Geth["Geth<br/>(Execution)"]
-        Beacon["Beacon Chain<br/>(Consensus)"]
-        Validator["Validator"]
-        MEV["MEV-Boost"]
-        VPN["VPN<br/>(optional)"]
+    subgraph Docker["Docker Container"]
+        subgraph Node["staker.node (Process Orchestrator)"]
+            Geth["Geth<br/>(Execution)"]
+            Beacon["Beacon Chain<br/>(Consensus)"]
+            Validator["Validator"]
+            MEV["MEV-Boost"]
+            VPN["VPN<br/>(optional)"]
+        end
     end
     
-    subgraph AWS["AWS ECS (EC2 Mode)"]
-        EBS["EBS Volume<br/>(Blockchain Data)"]
-        Snapshot["EBS Snapshots<br/>(Backups)"]
+    subgraph AWS["AWS"]
+        ECS["ECS (EC2 Mode)"]
+        EBS["EBS Volume"]
+        Snapshot["EBS Snapshots"]
+        SSM["SSM Parameter Store"]
+        Lambda["Snapshot Validator<br/>(Lambda)"]
+        ASG["Auto Scaling Group"]
     end
     
-    Geth --> EBS
-    Beacon --> EBS
-    Node --> AWS
+    subgraph External["External"]
+        Relays["MEV Relays"]
+        Peers["P2P Network"]
+    end
+    
+    Docker --> ECS
+    ECS --> EBS
+    Node --> Snapshot
+    Node --> SSM
+    Lambda --> SSM
+    Lambda --> Snapshot
+    MEV --> Relays
+    Geth --> Peers
+    Beacon --> Peers
+    ASG --> ECS
 ```
 
 ## 💖 Support
