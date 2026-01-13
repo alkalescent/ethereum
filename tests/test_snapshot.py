@@ -1,6 +1,6 @@
 """Tests for snapshot management."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -54,18 +54,18 @@ class TestSnapshot:
 
     def test_is_older_than_recent(self, mock_boto3):
         snapshot = Snapshot()
-        recent_snap = {"StartTime": datetime.utcnow()}
+        recent_snap = {"StartTime": datetime.now(timezone.utc)}
         assert snapshot.is_older_than(recent_snap, 30) is False
 
     def test_is_older_than_old(self, mock_boto3):
         snapshot = Snapshot()
-        old_snap = {"StartTime": datetime.utcnow() - timedelta(days=60)}
+        old_snap = {"StartTime": datetime.now(timezone.utc) - timedelta(days=60)}
         assert snapshot.is_older_than(old_snap, 30) is True
 
     def test_is_older_than_exactly_at_limit(self, mock_boto3):
         snapshot = Snapshot()
         # Just under 30 days
-        almost_old = {"StartTime": datetime.utcnow() - timedelta(days=29, hours=23)}
+        almost_old = {"StartTime": datetime.now(timezone.utc) - timedelta(days=29, hours=23)}
         assert snapshot.is_older_than(almost_old, 30) is False
 
     def test_force_create_calls_ec2(self, mock_boto3, mocker):
@@ -101,9 +101,9 @@ class TestSnapshot:
     def test_find_most_recent_returns_newest(self, mock_boto3):
         snapshot = Snapshot()
         snaps = [
-            {"SnapshotId": "old", "StartTime": datetime.utcnow() - timedelta(days=10)},
-            {"SnapshotId": "new", "StartTime": datetime.utcnow()},
-            {"SnapshotId": "mid", "StartTime": datetime.utcnow() - timedelta(days=5)},
+            {"SnapshotId": "old", "StartTime": datetime.now(timezone.utc) - timedelta(days=10)},
+            {"SnapshotId": "new", "StartTime": datetime.now(timezone.utc)},
+            {"SnapshotId": "mid", "StartTime": datetime.now(timezone.utc) - timedelta(days=5)},
         ]
         result = snapshot._find_most_recent(snaps)
         assert result["SnapshotId"] == "new"
@@ -145,7 +145,7 @@ class TestSnapshot:
         snapshot = Snapshot()
         old_snap = {
             "SnapshotId": "snap-old",
-            "StartTime": datetime.utcnow() - timedelta(days=100),
+            "StartTime": datetime.now(timezone.utc) - timedelta(days=100),
         }
         exceptions = set()
 
@@ -161,7 +161,7 @@ class TestSnapshot:
         snapshot = Snapshot()
         old_snap = {
             "SnapshotId": "snap-protected",
-            "StartTime": datetime.utcnow() - timedelta(days=100),
+            "StartTime": datetime.now(timezone.utc) - timedelta(days=100),
         }
         exceptions = {"snap-protected"}
 
@@ -194,7 +194,7 @@ class TestSnapshot:
         """Test update method returning True when refresh is needed."""
         snapshot = Snapshot()
         mocker.patch.object(snapshot, "_get_snapshots", return_value=[
-            {"SnapshotId": "snap-new", "StartTime": datetime.utcnow()}
+            {"SnapshotId": "snap-new", "StartTime": datetime.now(timezone.utc)}
         ])
         mocker.patch.object(snapshot, "_get_param", return_value="snap-old")
         mocker.patch.object(snapshot, "_put_param")

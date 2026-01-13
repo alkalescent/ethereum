@@ -981,7 +981,7 @@ wheels = [
 [[package]]
 name = "staker"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "boto3" },
     { name = "geoip2" },

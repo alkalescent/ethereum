@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import boto3
@@ -137,7 +137,7 @@ class Snapshot(SnapshotManager):
         if snapshot is None:
             return True
         created = self._get_snapshot_time(snapshot)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         actual_delta = now - created
         max_delta = timedelta(days=num_days)
         return actual_delta > max_delta
