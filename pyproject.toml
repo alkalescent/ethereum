@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "staker"
-version = "0.1.0"
+version = "0.0.0"  # Injected from git tag at build time
 description = "Ethereum staking node orchestrator"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 authors = [
-    { name = "Krish Suchak", email = "suchak.krish@gmail.com" }
+    { name = "Krish Suchak" }
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
