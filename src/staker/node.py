@@ -12,6 +12,7 @@ import select
 import signal
 import subprocess
 import sys
+import tempfile
 from glob import glob
 from random import choice
 from time import sleep, time
@@ -218,15 +219,22 @@ class Node:
     def _vpn(self) -> subprocess.Popen:
         """Start the OpenVPN client.
 
+        Creates a secure temp file for credentials with restrictive permissions.
+
         Returns:
             The openvpn process handle.
         """
         vpn_user = os.environ["VPN_USER"]
         vpn_pass = os.environ["VPN_PASS"]
-        with open("vpn_creds.txt", "w") as file:
+
+        # Create temp file with 0600 permissions (owner read/write only)
+        fd, creds_path = tempfile.mkstemp(prefix="vpn_creds_", text=True)
+        os.chmod(creds_path, 0o600)
+        with os.fdopen(fd, "w") as file:
             file.write(f"{vpn_user}\n{vpn_pass}")
+
         cfg = choice(glob("config/us*.tcp.ovpn"))
-        args = ["--config", cfg, "--auth-user-pass", "vpn_creds.txt"]
+        args = ["--config", cfg, "--auth-user-pass", creds_path]
         cmd = ["openvpn"] + args
         return self._run_cmd(cmd)
 

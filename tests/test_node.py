@@ -602,21 +602,28 @@ class TestNodeVPN:
         return Node(env=env, snapshot=NoOpSnapshotManager())
 
     def test_vpn_creates_creds_file(self, node, mocker, tmp_path):
+        """Test VPN creates secure temp file with credentials."""
         mocker.patch.dict(os.environ, {"VPN_USER": "testuser", "VPN_PASS": "testpass"})
         mocker.patch("staker.node.glob", return_value=["config/us1.tcp.ovpn"])
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
         mocker.patch("staker.node.choice", return_value="config/us1.tcp.ovpn")
 
-        # Change to tmp dir to write creds file there
-        original_dir = os.getcwd()
-        os.chdir(tmp_path)
-        try:
-            node._vpn()
-        finally:
-            os.chdir(original_dir)
+        # Mock tempfile to use tmp_path
+        creds_path = str(tmp_path / "vpn_creds_test")
+        mock_mkstemp = mocker.patch(
+            "staker.node.tempfile.mkstemp",
+            return_value=(os.open(creds_path, os.O_CREAT | os.O_WRONLY), creds_path),
+        )
+        mock_chmod = mocker.patch("os.chmod")
 
+        node._vpn()
+
+        # Verify tempfile was created with secure permissions
+        mock_mkstemp.assert_called_once_with(prefix="vpn_creds_", text=True)
+        mock_chmod.assert_called_once_with(creds_path, 0o600)
         mock_run.assert_called_once()
         assert "openvpn" in mock_run.call_args[0][0]
+        assert creds_path in mock_run.call_args[0][0]
 
 
 class TestNodeStart:

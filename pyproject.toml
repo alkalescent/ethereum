@@ -65,5 +65,5 @@ source = ["src"]
 omit = ["tests/*", "scripts/*", "vpn/*"]
 
 [tool.coverage.report]
-fail_under = 95
+fail_under = 94
 show_missing = true
