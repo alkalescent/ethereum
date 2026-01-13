@@ -6,7 +6,7 @@
 
 A complete Ethereum validator infrastructure running **Geth** (execution) + **Prysm** (consensus) + **MEV-Boost** on AWS ECS.
 
-## Architecture
+## 🏗️ Architecture
 
 ```mermaid
 graph TB
@@ -76,7 +76,7 @@ cd ethereum
 uv sync
 ```
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 src/staker/
@@ -88,14 +88,14 @@ src/staker/
 └── utils.py        # Utility functions (IP check, log coloring)
 ```
 
-## Prerequisites
+## ✅ Prerequisites
 
 - [uv](https://docs.astral.sh/uv/) (Python package manager)
 - Docker
 - AWS CLI (configured with appropriate permissions)
 - Python 3.11+
 
-## Configuration
+## ⚙️ Configuration
 
 ### Environment Variables
 
@@ -115,7 +115,7 @@ src/staker/
 | 13000 | TCP | Prysm P2P |
 | 12000 | UDP | Prysm P2P |
 
-## Development
+## 🛠️ Development
 
 ```bash
 make install   # Install dependencies
@@ -129,7 +129,7 @@ make kill      # Stop container gracefully
 make deploy    # Deploy to AWS
 ```
 
-## MEV Relays
+## ⚡ MEV Relays
 
 The node connects to multiple MEV relays for optimal block building:
 
@@ -139,14 +139,14 @@ The node connects to multiple MEV relays for optimal block building:
 
 Relays are automatically tested on startup; unreliable ones are filtered out.
 
-## Backup Strategy
+## 💾 Backup Strategy
 
 - Snapshots created every 30 days
 - Maximum 3 snapshots retained (90 days)
 - Automatic launch template updates with latest snapshot
 - Graceful shutdown triggers snapshot on instance draining
 
-## Version Info
+## 📊 Version Info
 
 | Component | Version |
 |-----------|---------|
@@ -155,6 +155,6 @@ Relays are automatically tested on startup; unreliable ones are filtered out.
 | MEV-Boost | 1.10.1 |
 | Base Image | Ubuntu 24.04 |
 
-## License
+## 📄 License
 
 MIT License - see [LICENSE](LICENSE) for details.
