@@ -92,8 +92,8 @@ RUN chmod +x beacon-chain validator prysmctl client-stats
 ENV PATH "${PATH}:${PRYSM_DIR}"
 
 # Download consensus snapshot
-COPY ".${PRYSM_DIR_BASE}/download_checkpoint.sh" .
-RUN bash download_checkpoint.sh
+COPY "scripts/checkpoint.sh" .
+RUN bash checkpoint.sh
 
 # Download mev-boost (extra)
 RUN mkdir -p "${EXTRA_DIR}"
