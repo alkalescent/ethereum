@@ -2,7 +2,7 @@
 
 # Install dependencies (frozen)
 ci:
-	uv sync --frozen $(if $(DEPLOY)--no-dev,)
+	uv sync --frozen $(if $(DEPLOY),--no-dev,)
 
 # Install dependencies
 install:
