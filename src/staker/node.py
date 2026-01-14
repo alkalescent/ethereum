@@ -156,7 +156,7 @@ class Node:
 
         if DEV:
             args.append("--holesky")
-            args.append(f"--genesis-state={prysm_dir}/genesis.ssz")
+            args.append(f"--genesis-state={checkpoint_dir}/genesis.ssz")
         else:
             args.append("--mainnet")
 
@@ -167,8 +167,8 @@ class Node:
         if p2p_host:
             args.append(f"--p2p-host-dns={p2p_host}")
 
-        state_filename = glob(f"{prysm_dir}/state*.ssz")[0]
-        block_filename = glob(f"{prysm_dir}/block*.ssz")[0]
+        state_filename = glob(f"{checkpoint_dir}/state*.ssz")[0]
+        block_filename = glob(f"{checkpoint_dir}/block*.ssz")[0]
         args += [
             f"--checkpoint-state={state_filename}",
             f"--checkpoint-block={block_filename}",
