@@ -83,9 +83,9 @@ RUN if [ "$ARCH" = "amd64" ]; \
     else export PRYSM_PLATFORM_ARCH="${PLATFORM_ARCH}"; \
     fi; \
     echo $PRYSM_PLATFORM_ARCH; \
-    curl -Lo beacon-chain "https://github.com/prysmaticlabs/prysm/releases/download/${PRYSM_VERSION}/beacon-chain-${PRYSM_VERSION}-${PRYSM_PLATFORM_ARCH}"; \
-    curl -Lo validator "https://github.com/prysmaticlabs/prysm/releases/download/${PRYSM_VERSION}/validator-${PRYSM_VERSION}-${PLATFORM_ARCH}"; \
-    curl -Lo prysmctl "https://github.com/prysmaticlabs/prysm/releases/download/${PRYSM_VERSION}/prysmctl-${PRYSM_VERSION}-${PLATFORM_ARCH}";
+    curl -Lo beacon-chain "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/beacon-chain-v${PRYSM_VERSION}-${PRYSM_PLATFORM_ARCH}"; \
+    curl -Lo validator "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/validator-v${PRYSM_VERSION}-${PLATFORM_ARCH}"; \
+    curl -Lo prysmctl "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/prysmctl-v${PRYSM_VERSION}-${PLATFORM_ARCH}";
 
 RUN chmod +x beacon-chain validator prysmctl
 # Add prysm to path
@@ -104,9 +104,9 @@ RUN mkdir -p "${EXTRA_DIR}"
 WORKDIR "${EXTRA_DIR}"
 
 ARG MEVBOOST_VERSION
-ENV MEV_ARCHIVE "mev-boost_${MEVBOOST_VERSION#v}_linux_${ARCH}"
+ENV MEV_ARCHIVE "mev-boost_${MEVBOOST_VERSION}_linux_${ARCH}"
 
-RUN curl -LO "https://github.com/flashbots/mev-boost/releases/download/${MEVBOOST_VERSION}/${MEV_ARCHIVE}.tar.gz"
+RUN curl -LO "https://github.com/flashbots/mev-boost/releases/download/v${MEVBOOST_VERSION}/${MEV_ARCHIVE}.tar.gz"
 RUN tar -xvzf "${MEV_ARCHIVE}.tar.gz"
 RUN chmod +x mev-boost
 

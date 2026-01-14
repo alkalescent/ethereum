@@ -80,9 +80,9 @@ def parse_geth_version(release: dict) -> tuple[str, str]:
 
 
 def parse_version(release: dict) -> str:
-    """Parse version from release tag."""
+    """Parse version from release tag, stripping 'v' prefix."""
     tag = release["tag_name"]
-    return tag  # Keep 'v' prefix for prysm/mev-boost
+    return tag.lstrip("v")
 
 
 def get_current_branch() -> str:
