@@ -84,10 +84,9 @@ RUN if [ "$ARCH" = "amd64" ]; \
     echo $PRYSM_PLATFORM_ARCH; \
     curl -Lo beacon-chain "https://github.com/prysmaticlabs/prysm/releases/download/${PRYSM_VERSION}/beacon-chain-${PRYSM_VERSION}-${PRYSM_PLATFORM_ARCH}"; \
     curl -Lo validator "https://github.com/prysmaticlabs/prysm/releases/download/${PRYSM_VERSION}/validator-${PRYSM_VERSION}-${PLATFORM_ARCH}"; \
-    curl -Lo prysmctl "https://github.com/prysmaticlabs/prysm/releases/download/${PRYSM_VERSION}/prysmctl-${PRYSM_VERSION}-${PLATFORM_ARCH}"; \
-    curl -Lo client-stats "https://github.com/prysmaticlabs/prysm/releases/download/${PRYSM_VERSION}/client-stats-${PRYSM_VERSION}-${PLATFORM_ARCH}";
+    curl -Lo prysmctl "https://github.com/prysmaticlabs/prysm/releases/download/${PRYSM_VERSION}/prysmctl-${PRYSM_VERSION}-${PLATFORM_ARCH}";
 
-RUN chmod +x beacon-chain validator prysmctl client-stats
+RUN chmod +x beacon-chain validator prysmctl
 # Add prysm to path
 ENV PATH "${PATH}:${PRYSM_DIR}"
 
