@@ -327,7 +327,7 @@ class Node:
             for meta in self.processes:
                 try:
                     os.kill(meta["process"].pid, sig)
-                except Exception as e:
+                except OSError as e:
                     logging.exception(e)
 
     def _interrupt(self, **kwargs) -> None:

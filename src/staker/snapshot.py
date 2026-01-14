@@ -12,6 +12,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import boto3
+from botocore.exceptions import ClientError
 
 from staker.config import AWS, DEPLOY_ENV, MAX_SNAPSHOT_DAYS, SNAPSHOT_DAYS
 
@@ -246,7 +247,7 @@ class Snapshot(SnapshotManager):
         """Get snapshot ID from SSM Parameter Store."""
         try:
             return self.ssm.get_parameter(Name=self.tag)["Parameter"]["Value"]
-        except Exception as e:
+        except ClientError as e:
             logging.exception(e)
             return None
 
@@ -258,7 +259,7 @@ class Snapshot(SnapshotManager):
                 for device in launch_template["LaunchTemplateData"]["BlockDeviceMappings"]:
                     if device["DeviceName"] == "/dev/sdx":
                         return device["Ebs"]["SnapshotId"]
-        except Exception as e:
+        except ClientError as e:
             logging.exception(e)
         return None
 

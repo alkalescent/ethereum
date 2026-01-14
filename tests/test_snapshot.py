@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock
 
 import pytest
+from botocore.exceptions import ClientError
 
 from staker.snapshot import NoOpSnapshotManager, Snapshot
 
@@ -129,7 +130,10 @@ class TestSnapshot:
 
     def test_get_param_returns_none_on_error(self, mock_boto3, mocker):
         mock_ssm = MagicMock()
-        mock_ssm.get_parameter.side_effect = Exception("Not found")
+        mock_ssm.get_parameter.side_effect = ClientError(
+            {"Error": {"Code": "ParameterNotFound", "Message": "Not found"}},
+            "GetParameter"
+        )
         mocker.patch("staker.snapshot.boto3.client", return_value=mock_ssm)
 
         snapshot = Snapshot()
@@ -310,7 +314,10 @@ class TestSnapshot:
         snapshot = Snapshot()
 
         mocker.patch("staker.snapshot.AWS", True)
-        snapshot.ec2.get_launch_template_data.side_effect = Exception("API error")
+        snapshot.ec2.get_launch_template_data.side_effect = ClientError(
+            {"Error": {"Code": "InvalidInstance", "Message": "API error"}},
+            "GetLaunchTemplateData"
+        )
 
         result = snapshot._get_curr_snapshot_id()
 
