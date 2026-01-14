@@ -42,7 +42,12 @@ kill:
 deploy:
 	DRY_RUN=$(if $(DRY),true,false) ./scripts/deploy.sh
 
+# Update client versions from GitHub releases
+update:
+	uv run python scripts/update.py
+
 # Clean build artifacts
 clean:
 	rm -rf .venv .pytest_cache __pycache__ .ruff_cache
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
