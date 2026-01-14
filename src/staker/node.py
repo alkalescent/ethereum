@@ -152,7 +152,7 @@ class Node:
             "--enable-backfill",
         ]
 
-        prysm_dir = "./consensus/prysm"
+        checkpoint_dir = os.environ.get("CHECKPOINT_DIR", "./checkpoints")
 
         if DEV:
             args.append("--holesky")
