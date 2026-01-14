@@ -56,7 +56,7 @@ RUN touch /tmp/.tests_passed
 FROM base AS deploy
 
 # Install Python dependencies (runtime only)
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock README.md ./
 RUN make ci DEPLOY=1
 
 # Download geth (execution)
