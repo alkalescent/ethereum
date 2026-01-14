@@ -38,7 +38,7 @@ WORKDIR "${ETH_DIR}"
 FROM base AS test
 
 # Copy project files needed for testing
-COPY pyproject.toml uv.lock Makefile ./
+COPY pyproject.toml uv.lock README.md Makefile ./
 COPY src/ src/
 COPY tests/ tests/
 
