@@ -57,7 +57,7 @@ FROM base AS deploy
 
 # Install Python dependencies (runtime only)
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev
+RUN make ci DEPLOY=1
 
 # Download geth (execution)
 RUN mkdir -p "${EXEC_DIR}"
