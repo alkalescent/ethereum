@@ -2,11 +2,11 @@
 
 # Install dependencies (frozen)
 ci:
-	uv sync --frozen $(if $(DEPLOY),--no-dev,)
+	uv sync --frozen $(if $(DEPLOY),--no-dev --no-install-project,--no-install-project)
 
 # Install dependencies
 install:
-	uv sync --all-groups
+	uv sync --all-groups --no-install-project
 
 # Run linting
 lint:
