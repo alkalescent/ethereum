@@ -59,7 +59,7 @@ jobs:
           no-cache: true
           context: .
           platforms: linux/${{ env.ARCH }}
-          push: true
+          push: ${{ vars.AWS == 'true' }}
           build-args: |
             DEPLOY_ENV=${{ env.DEPLOY_ENV }}
             VERSION=${{ env.IMAGE_TAG }}
