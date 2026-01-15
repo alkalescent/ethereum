@@ -56,6 +56,7 @@ jobs:
           ECR_REPOSITORY: ${{ fromJSON('["dev_eth_staker", "prod_eth_staker"]')[github.ref_name == 'master'] }}
           IMAGE_TAG: ${{ github.sha }}
         with:
+          no-cache: true
           context: .
           platforms: linux/${{ env.ARCH }}
           push: true
