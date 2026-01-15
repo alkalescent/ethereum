@@ -91,12 +91,8 @@ RUN chmod +x beacon-chain validator prysmctl
 ENV PATH="${PATH}:${PRYSM_DIR}"
 
 # Download consensus checkpoint
-ENV CHECKPOINT_DIR="${ETH_DIR}/checkpoints"
-RUN mkdir -p "${CHECKPOINT_DIR}"
-WORKDIR "${CHECKPOINT_DIR}"
 COPY "scripts/checkpoint.sh" .
 RUN bash checkpoint.sh
-WORKDIR "${PRYSM_DIR}"
 
 # Download mev-boost (extra)
 RUN mkdir -p "${EXTRA_DIR}"
