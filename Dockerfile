@@ -5,6 +5,9 @@
 # =============================================================================
 FROM ubuntu:24.04 AS base
 
+# Configure home dir
+ENV HOME="/root"
+
 # Configure env vars
 ARG DEPLOY_ENV
 ARG VERSION

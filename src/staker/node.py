@@ -152,7 +152,7 @@ class Node:
             "--enable-backfill",
         ]
 
-        prysm_dir = './consensus/prysm'
+        prysm_dir = "./consensus/prysm"
 
         if DEV:
             args.append("--holesky")

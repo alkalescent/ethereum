@@ -8,7 +8,6 @@ source versions.env
 
 docker build \
     -t ethereum \
-    --no-cache \
     --network=host \
     --build-arg DEPLOY_ENV=prod \
     --build-arg ARCH=amd64 \
