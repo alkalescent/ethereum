@@ -40,6 +40,15 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
+      - name: Load versions
+        id: versions
+        run: |
+          source versions.env
+          echo "GETH_VERSION=${GETH_VERSION}" >> $GITHUB_OUTPUT
+          echo "GETH_COMMIT=${GETH_COMMIT}" >> $GITHUB_OUTPUT
+          echo "PRYSM_VERSION=${PRYSM_VERSION}" >> $GITHUB_OUTPUT
+          echo "MEVBOOST_VERSION=${MEVBOOST_VERSION}" >> $GITHUB_OUTPUT
+
       - name: Build and push
         uses: docker/build-push-action@v4
         env:
@@ -54,6 +63,10 @@ jobs:
             DEPLOY_ENV=${{ env.DEPLOY_ENV }}
             VERSION=${{ env.IMAGE_TAG }}
             ARCH=${{ env.ARCH }}
+            GETH_VERSION=${{ steps.versions.outputs.GETH_VERSION }}
+            GETH_COMMIT=${{ steps.versions.outputs.GETH_COMMIT }}
+            PRYSM_VERSION=${{ steps.versions.outputs.PRYSM_VERSION }}
+            MEVBOOST_VERSION=${{ steps.versions.outputs.MEVBOOST_VERSION }}
           tags: |
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
