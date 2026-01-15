@@ -14,7 +14,6 @@ ENV DEPLOY_ENV="${DEPLOY_ENV:-prod}"
 ENV VERSION="${VERSION}"
 ENV ARCH="${ARCH:-arm64}"
 ENV VPN="${VPN:-false}"
-
 ENV ETH_DIR="${HOME}/ethereum"
 ENV EXEC_DIR="${ETH_DIR}/execution"
 ENV EXTRA_DIR_BASE="/extra"
@@ -28,7 +27,7 @@ RUN apt-get update && \
 
 # Install uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:${PATH}"
+ENV PATH="${HOME}/.local/bin:${PATH}"
 
 WORKDIR "${ETH_DIR}"
 

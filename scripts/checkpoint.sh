@@ -21,4 +21,4 @@ else
     NODE_HOST="https://sync-mainnet.beaconcha.in"
 fi
 
-./prysmctl checkpoint-sync download --beacon-node-host="${NODE_HOST}"
+prysmctl checkpoint-sync download --beacon-node-host="${NODE_HOST}"
