@@ -10,17 +10,17 @@ ARG DEPLOY_ENV
 ARG VERSION
 ARG ARCH
 ARG VPN
-ENV DEPLOY_ENV "${DEPLOY_ENV:-prod}"
-ENV VERSION "${VERSION}"
-ENV ARCH "${ARCH:-arm64}"
-ENV VPN "${VPN:-false}"
+ENV DEPLOY_ENV="${DEPLOY_ENV:-prod}"
+ENV VERSION="${VERSION}"
+ENV ARCH="${ARCH:-arm64}"
+ENV VPN="${VPN:-false}"
 
-ENV ETH_DIR "${HOME}/ethereum"
-ENV EXEC_DIR "${ETH_DIR}/execution"
-ENV EXTRA_DIR_BASE "/extra"
-ENV EXTRA_DIR "${ETH_DIR}${EXTRA_DIR_BASE}"
-ENV PRYSM_DIR_BASE "/consensus/prysm"
-ENV PRYSM_DIR "${ETH_DIR}${PRYSM_DIR_BASE}"
+ENV ETH_DIR="${HOME}/ethereum"
+ENV EXEC_DIR="${ETH_DIR}/execution"
+ENV EXTRA_DIR_BASE="/extra"
+ENV EXTRA_DIR="${ETH_DIR}${EXTRA_DIR_BASE}"
+ENV PRYSM_DIR_BASE="/consensus/prysm"
+ENV PRYSM_DIR="${ETH_DIR}${PRYSM_DIR_BASE}"
 
 # Install deps
 RUN apt-get update && \
@@ -62,17 +62,17 @@ RUN make ci DEPLOY=1
 # Download geth (execution)
 RUN mkdir -p "${EXEC_DIR}"
 WORKDIR "${EXEC_DIR}"
-ENV PLATFORM_ARCH "linux-${ARCH}"
+ENV PLATFORM_ARCH="linux-${ARCH}"
 ARG GETH_VERSION
 ARG GETH_COMMIT
-ENV GETH_ARCHIVE "geth-${PLATFORM_ARCH}-${GETH_VERSION}-${GETH_COMMIT}"
+ENV GETH_ARCHIVE="geth-${PLATFORM_ARCH}-${GETH_VERSION}-${GETH_COMMIT}"
 RUN curl -LO "https://gethstore.blob.core.windows.net/builds/${GETH_ARCHIVE}.tar.gz"
 RUN tar -xvzf "${GETH_ARCHIVE}.tar.gz"
 RUN mv "${GETH_ARCHIVE}/geth" . && rm -rf "${GETH_ARCHIVE}"
 
 RUN chmod +x geth
 # Add geth to path
-ENV PATH "${PATH}:${EXEC_DIR}"
+ENV PATH="${PATH}:${EXEC_DIR}"
 
 # Download prysm (consensus)
 RUN mkdir -p "${PRYSM_DIR}"
@@ -89,10 +89,10 @@ RUN if [ "$ARCH" = "amd64" ]; \
 
 RUN chmod +x beacon-chain validator prysmctl
 # Add prysm to path
-ENV PATH "${PATH}:${PRYSM_DIR}"
+ENV PATH="${PATH}:${PRYSM_DIR}"
 
 # Download consensus checkpoint
-ENV CHECKPOINT_DIR "${ETH_DIR}/checkpoints"
+ENV CHECKPOINT_DIR="${ETH_DIR}/checkpoints"
 RUN mkdir -p "${CHECKPOINT_DIR}"
 WORKDIR "${CHECKPOINT_DIR}"
 COPY "scripts/checkpoint.sh" .
@@ -104,14 +104,14 @@ RUN mkdir -p "${EXTRA_DIR}"
 WORKDIR "${EXTRA_DIR}"
 
 ARG MEVBOOST_VERSION
-ENV MEV_ARCHIVE "mev-boost_${MEVBOOST_VERSION}_linux_${ARCH}"
+ENV MEV_ARCHIVE="mev-boost_${MEVBOOST_VERSION}_linux_${ARCH}"
 
 RUN curl -LO "https://github.com/flashbots/mev-boost/releases/download/v${MEVBOOST_VERSION}/${MEV_ARCHIVE}.tar.gz"
 RUN tar -xvzf "${MEV_ARCHIVE}.tar.gz"
 RUN chmod +x mev-boost
 
 # Add extra to path
-ENV PATH "${PATH}:${EXTRA_DIR}"
+ENV PATH="${PATH}:${EXTRA_DIR}"
 
 # Run app
 WORKDIR "${ETH_DIR}"
