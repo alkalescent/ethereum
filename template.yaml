@@ -30,9 +30,6 @@ Parameters:
     Description: AMI ID
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ecs/optimized-ami/amazon-linux-2023/arm64/recommended/image_id
-  BeaconChainKey:
-    Type: "String"
-    NoEcho: true
   HostedZoneId:
     Type: "String"
     NoEcho: true
@@ -42,24 +39,30 @@ Parameters:
   WalletPass:
     Type: "String"
     NoEcho: true
+  SnapshotId:
+    Type: "String"
+    Description: "EBS Snapshot ID to restore from (leave empty for fresh volume)"
+    Default: ""
 
 Conditions:
   UseAMD64:
     !Equals [!Ref Arch, amd64]
   IsProd:
     !Equals [!Ref DeployEnv, prod]
+  HasSnapshot:
+    !Not [!Equals [!Ref SnapshotId, ""]]
 
 Resources:
-  # EIPDNSRecord:
-  #   DependsOn: ElasticIP
-  #   Type: AWS::Route53::RecordSet
-  #   Properties: 
-  #     HostedZoneId: !Ref HostedZoneId
-  #     Name: !Join [ "", [aws., !If [IsProd, "", "dev."], eth.forcepu.sh ] ]
-  #     ResourceRecords: 
-  #       - !GetAtt ElasticIP.PublicIp
-  #     TTL: 172800
-  #     Type: A
+  EIPDNSRecord:
+    DependsOn: ElasticIP
+    Type: AWS::Route53::RecordSet
+    Properties: 
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Join [ "", [aws., !If [IsProd, "", "dev."], eth.machine.one ] ]
+      ResourceRecords: 
+        - !GetAtt ElasticIP.PublicIp
+      TTL: 172800
+      Type: A
   InstanceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -111,11 +114,11 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
       RoleName: !Sub "${DeployEnv}StakingExecutionRole"
-  # ElasticIP:
-  #   Type: AWS::EC2::EIP
-  #   Properties: 
-  #     Domain: vpc
-  #     NetworkBorderGroup: !Ref AWS::Region
+  ElasticIP:
+    Type: AWS::EC2::EIP
+    Properties: 
+      Domain: vpc
+      NetworkBorderGroup: !Ref AWS::Region
   InstanceProfile:
     DependsOn: InstanceRole
     Type: AWS::IAM::InstanceProfile
@@ -123,6 +126,10 @@ Resources:
       InstanceProfileName: !Sub "${DeployEnv}StakingInstanceProfile"
       Roles: 
         - !Sub "${DeployEnv}StakingInstanceRole"
+
+  # Note: Snapshots are managed by Python app at runtime (src/staker/snapshot.py)
+  # The app dynamically creates launch template versions with SnapshotId when needed
+
   TaskRole:
     Type: AWS::IAM::Role
     Properties:
@@ -177,8 +184,6 @@ Resources:
               Value: !Ref AWS::Region
             - Name: AWS
               Value: true
-            - Name: BEACONCHAIN_KEY
-              Value: !Ref BeaconChainKey
             - Name: ETH_ADDR
               Value: !Ref EthAddr
             - Name: DOCKER
@@ -271,7 +276,7 @@ Resources:
           Type: ECS
         DesiredCount: !Ref DesiredCapacity
         EnableECSManagedTags: true
-        # EnableExecuteCommand: true
+        EnableExecuteCommand: true
         # https://github.com/aws/aws-cli/issues/6242
         LaunchType: EC2
         PlacementStrategies: 
@@ -284,6 +289,7 @@ Resources:
         TaskDefinition: !Sub "${DeployEnv}_eth_staker"
   AutoScalingGroup:
     DependsOn: 
+      # Is the ECSCluster dep needed?
       - ECSCluster
       - LaunchTemplate
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -316,26 +322,19 @@ Resources:
     DependsOn: 
       - SecurityGroup
       - InstanceProfile
-      # - ElasticIP
+      - ElasticIP
     Type: AWS::EC2::LaunchTemplate
     Properties: 
       LaunchTemplateData:
-        
         BlockDeviceMappings:
           - 
             DeviceName: /dev/sdx
             Ebs: 
               DeleteOnTermination: true
               VolumeSize: !If [IsProd, 1500, 500]
-              # can't use io2 because of cost
               VolumeType: gp3
-              # Iops: 10000
-              # 10 - 15k is laptop/desktop SSD throughput
-              # Throughput: 1000
-              SnapshotId: !Sub '{{resolve:ssm:${DeployEnv}_staking_snapshot}}'
-                # Condition: 
-              # try defining cf param as ssm param val or 'default' / pseudo AWS::NoValue
-              # https://www.jforte.me/posts/create-ebs-volume-snapshot-condtions-aws-cdk/
+              # Use snapshot if provided via SnapshotId parameter, otherwise fresh volume
+              SnapshotId: !If [HasSnapshot, !Ref SnapshotId, !Ref "AWS::NoValue"]
         DisableApiStop: false
         DisableApiTermination: false
         EbsOptimized: true
@@ -369,72 +368,72 @@ Resources:
               -
                 Key: Description
                 Value: "This instance is the part of the Launch Template which was created through Cloudformation"
-        # UserData:
-        #   "Fn::Base64": !Sub |
-        #     #!/bin/bash
+        UserData:
+          "Fn::Base64": !Sub |
+            #!/bin/bash
 
-        #     # Start ECS agent and register task
-        #     cat <<'EOF' >> /etc/ecs/ecs.config
-        #     ECS_CLUSTER=${ECSCluster}
-        #     ECS_ENABLE_CONTAINER_METADATA=true
-        #     ECS_ENABLE_SPOT_INSTANCE_DRAINING=true
-        #     ECS_CONTAINER_STOP_TIMEOUT=120s
-        #     EOF
-        #     yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_${Arch}/amazon-ssm-agent.rpm
-        #     yum install -y https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/${Arch}/latest/amazon-cloudwatch-agent.rpm
-        #     yum install -y aws-cfn-bootstrap hibagent 
-        #     /opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource LaunchTemplate
-        #     /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource AutoScalingGroup
-        #     /usr/bin/enable-ec2-spot-hibernation
+            # Start ECS agent and register task
+            cat <<'EOF' >> /etc/ecs/ecs.config
+            ECS_CLUSTER=${ECSCluster}
+            ECS_ENABLE_CONTAINER_METADATA=true
+            ECS_ENABLE_SPOT_INSTANCE_DRAINING=true
+            ECS_CONTAINER_STOP_TIMEOUT=120s
+            EOF
+            yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_${Arch}/amazon-ssm-agent.rpm
+            yum install -y https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/${Arch}/latest/amazon-cloudwatch-agent.rpm
+            yum install -y aws-cfn-bootstrap hibagent 
+            /opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource LaunchTemplate
+            /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource AutoScalingGroup
+            /usr/bin/enable-ec2-spot-hibernation
 
-        #     # Mount EBS volume
-        #     mkdir -p /mnt/ebs
-        #     mkfs -t xfs /dev/sdx
-        #     if [ $? -eq 0 ]; then
-        #         echo "New volume initialized."
-        #     else
-        #         echo "Snapshot EBS volume loaded."
-        #     fi
-        #     mount -o nouuid /dev/sdx /mnt/ebs
+            # Mount EBS volume
+            mkdir -p /mnt/ebs
+            mkfs -t xfs /dev/sdx
+            if [ $? -eq 0 ]; then
+                echo "New volume initialized."
+            else
+                echo "Snapshot EBS volume loaded."
+            fi
+            mount -o nouuid /dev/sdx /mnt/ebs
             
-        #     # Write volume id to volume
-        #     awk -F' '  '{print $NF}' <<< $(/sbin/ebsnvme-id /dev/sdx -v) > /mnt/ebs/VOLUME_ID
+            # Write volume id to volume
+            awk -F' '  '{print $NF}' <<< $(/sbin/ebsnvme-id /dev/sdx -v) > /mnt/ebs/VOLUME_ID
             
-        #     # Write instance id to volume
-        #     INSTANCE_ID=$(awk -F' '  '{print $NF}' <<< $(ec2-metadata --instance-id))
-        #     echo "${!INSTANCE_ID}" > /mnt/ebs/INSTANCE_ID
+            # Write instance id to volume
+            INSTANCE_ID=$(awk -F' '  '{print $NF}' <<< $(ec2-metadata --instance-id))
+            echo "${INSTANCE_ID}" > /mnt/ebs/INSTANCE_ID
 
-        #     # Write wallet password to volume
-        #     WALLET_DIR="/mnt/ebs/.eth2validators/prysm-wallet-v2"
-        #     mkdir -p "${!WALLET_DIR}"
-        #     echo "${WalletPass}" > "${!WALLET_DIR}/password.txt"
+            # Write wallet password to volume
+            WALLET_DIR="/mnt/ebs/.eth2validators/prysm-wallet-v2"
+            mkdir -p "${WALLET_DIR}"
+            echo "${WalletPass}" > "${WALLET_DIR}/password.txt"
 
-        #     # Change default SSH port
-        #     sed -i 's/#Port\s22/Port ${SSHPort}/' /etc/ssh/sshd_config
-        #     service sshd restart
+            # Change default SSH port
+            sed -i 's/#Port\s22/Port ${SSHPort}/' /etc/ssh/sshd_config
+            service sshd restart
 
-        #     # Associate Elastic IP
-        #     MAXWAIT=3
-        #     ALLOC_ID="${ElasticIP.AllocationId}"
-        #     AWS_DEFAULT_REGION="${AWS::Region}"
+            # Associate Elastic IP
+            MAXWAIT=3
+            ALLOC_ID="${ElasticIP.AllocationId}"
+            AWS_DEFAULT_REGION="${AWS::Region}"
 
-        #     # Make sure the EIP is free
-        #     echo "Checking if EIP with ALLOC_ID[$ALLOC_ID] is free...."
-        #     ISFREE=$(aws ec2 describe-addresses --allocation-ids $ALLOC_ID --query Addresses[].InstanceId --output text)
-        #     STARTWAIT=$(date +%s)
-        #     while [ ! -z "$ISFREE" ]; do
-        #         if [ "$(($(date +%s) - $STARTWAIT))" -gt $MAXWAIT ]; then
-        #             echo "WARNING: We waited 30 seconds, we're forcing it now."
-        #             ISFREE=""
-        #         else
-        #             echo "Waiting for EIP with ALLOC_ID[$ALLOC_ID] to become free...."
-        #             sleep 3
-        #             ISFREE=$(aws ec2 describe-addresses --allocation-ids $ALLOC_ID --query Addresses[].InstanceId --output text)
-        #         fi
-        #     done
+            # Make sure the EIP is free
+            echo "Checking if EIP with ALLOC_ID[$ALLOC_ID] is free...."
+            ISFREE=$(aws ec2 describe-addresses --allocation-ids $ALLOC_ID --query Addresses[].InstanceId --output text)
+            STARTWAIT=$(date +%s)
+            while [ ! -z "$ISFREE" ]; do
+                if [ "$(($(date +%s) - $STARTWAIT))" -gt $MAXWAIT ]; then
+                    echo "WARNING: We waited 30 seconds, we're forcing it now."
+                    ISFREE=""
+                else
+                    echo "Waiting for EIP with ALLOC_ID[$ALLOC_ID] to become free...."
+                    sleep 3
+                    ISFREE=$(aws ec2 describe-addresses --allocation-ids $ALLOC_ID --query Addresses[].InstanceId --output text)
+                fi
+            done
 
-        #     # Now we can associate the address
-        #     echo Running: aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id $ALLOC_ID --allow-reassociation
-        #     aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id $ALLOC_ID --allow-reassociation
+            # Now we can associate the address
+            echo Running: aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id $ALLOC_ID --allow-reassociation
+            aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id $ALLOC_ID --allow-reassociation
 
       LaunchTemplateName: !Sub "${DeployEnv}_launch_template"

@@ -1,109 +1,113 @@
-# Base image
-FROM ubuntu:23.04
+# syntax=docker/dockerfile:1
+
+# =============================================================================
+# BASE STAGE - Common setup for all stages
+# =============================================================================
+FROM ubuntu:24.04 AS base
+
+# Configure home dir
+ENV HOME="/root"
 
 # Configure env vars
 ARG DEPLOY_ENV
 ARG VERSION
 ARG ARCH
 ARG VPN
-ENV DEPLOY_ENV "${DEPLOY_ENV:-prod}"
-ENV VERSION "${VERSION}"
-ENV ARCH "${ARCH:-arm64}"
-ENV VPN "${VPN:-false}"
+ENV DEPLOY_ENV="${DEPLOY_ENV:-prod}"
+ENV VERSION="${VERSION}"
+ENV ARCH="${ARCH:-arm64}"
+ENV VPN="${VPN:-false}"
+ENV ETH_DIR="${HOME}/ethereum"
+ENV EXEC_DIR="${ETH_DIR}/execution"
+ENV EXTRA_DIR_BASE="/extra"
+ENV EXTRA_DIR="${ETH_DIR}${EXTRA_DIR_BASE}"
+ENV PRYSM_DIR_BASE="/consensus/prysm"
+ENV PRYSM_DIR="${ETH_DIR}${PRYSM_DIR_BASE}"
 
-ENV ETH_DIR "${HOME}/ethereum"
-ENV EXEC_DIR "${ETH_DIR}/execution"
-ENV EXTRA_DIR_BASE "/extra"
-ENV EXTRA_DIR "${ETH_DIR}${EXTRA_DIR_BASE}"
-ENV PRYSM_DIR_BASE "/consensus/prysm"
-ENV PRYSM_DIR "${ETH_DIR}${PRYSM_DIR_BASE}"
-
-
-# Install deps
+# Install deps and uv in single layer
 RUN apt-get update && \
-    apt-get install -y python3 git curl bash python3-pip
+    apt-get install -y python3 git curl bash make && \
+    rm -rf /var/lib/apt/lists/* && \
+    curl -LsSf https://astral.sh/uv/install.sh | sh
 
-RUN python3 -m venv "${ETH_DIR}" --without-pip --system-site-packages
-# Use virtual env as default python path
-ENV PATH "${ETH_DIR}/bin:${PATH}"
-RUN python3 -m pip install boto3 requests rich
+ENV PATH="${HOME}/.local/bin:${PATH}"
 
-# # Download geth (execution)
-RUN mkdir -p "${EXEC_DIR}"
-WORKDIR "${EXEC_DIR}"
-ENV PLATFORM_ARCH "linux-${ARCH}"
-ENV GETH_VERSION 1.14.7-aa55f5ea
-ENV GETH_ARCHIVE "geth-${PLATFORM_ARCH}-${GETH_VERSION}"
-RUN curl -LO "https://gethstore.blob.core.windows.net/builds/${GETH_ARCHIVE}.tar.gz"
-RUN tar -xvzf "${GETH_ARCHIVE}.tar.gz"
-RUN mv "${GETH_ARCHIVE}/geth" . && rm -rf "${GETH_ARCHIVE}"
+WORKDIR "${ETH_DIR}"
 
-RUN chmod +x geth
-# Add geth to path
-ENV PATH "${PATH}:${EXEC_DIR}"
+# =============================================================================
+# TEST STAGE - Run lint and coverage checks
+# =============================================================================
+FROM base AS test
+
+# Copy project files needed for testing
+COPY pyproject.toml uv.lock README.md Makefile ./
+COPY src/ src/
+COPY tests/ tests/
+
+# Install dependencies and run checks in single layer
+RUN make ci && make lint && make cov && touch /tmp/.tests_passed
+
+# =============================================================================
+# DEPLOY STAGE - Runtime image (can be targeted directly to skip tests)
+# =============================================================================
+FROM base AS deploy
+
+# Install Python dependencies (runtime only)
+COPY pyproject.toml uv.lock README.md Makefile ./
+RUN make ci DEPLOY=1
+
+# Download geth (execution) - single layer to avoid orphaned archives
+ARG GETH_VERSION
+ARG GETH_COMMIT
+ENV PLATFORM_ARCH="linux-${ARCH}"
+ENV GETH_ARCHIVE="geth-${PLATFORM_ARCH}-${GETH_VERSION}-${GETH_COMMIT}"
+RUN mkdir -p "${EXEC_DIR}" && \
+    cd "${EXEC_DIR}" && \
+    curl -LO "https://gethstore.blob.core.windows.net/builds/${GETH_ARCHIVE}.tar.gz" && \
+    tar -xvzf "${GETH_ARCHIVE}.tar.gz" && \
+    mv "${GETH_ARCHIVE}/geth" . && \
+    rm -rf "${GETH_ARCHIVE}" "${GETH_ARCHIVE}.tar.gz" && \
+    chmod +x geth
+ENV PATH="${PATH}:${EXEC_DIR}"
 
 # Download prysm (consensus)
-RUN mkdir -p "${PRYSM_DIR}"
-WORKDIR "${PRYSM_DIR}"
-ENV PRYSM_VERSION v5.0.4
-RUN if [ "$ARCH" = "amd64" ]; \
-    then export PRYSM_PLATFORM_ARCH="modern-${PLATFORM_ARCH}"; \
-    else export PRYSM_PLATFORM_ARCH="${PLATFORM_ARCH}"; \
-    fi; \
-    echo $PRYSM_PLATFORM_ARCH; \
-    curl -Lo beacon-chain "https://github.com/prysmaticlabs/prysm/releases/download/${PRYSM_VERSION}/beacon-chain-${PRYSM_VERSION}-${PRYSM_PLATFORM_ARCH}"; \
-    curl -Lo validator "https://github.com/prysmaticlabs/prysm/releases/download/${PRYSM_VERSION}/validator-${PRYSM_VERSION}-${PLATFORM_ARCH}"; \
-    curl -Lo prysmctl "https://github.com/prysmaticlabs/prysm/releases/download/${PRYSM_VERSION}/prysmctl-${PRYSM_VERSION}-${PLATFORM_ARCH}"; \
-    curl -Lo client-stats "https://github.com/prysmaticlabs/prysm/releases/download/${PRYSM_VERSION}/client-stats-${PRYSM_VERSION}-${PLATFORM_ARCH}";
+ARG PRYSM_VERSION
+RUN mkdir -p "${PRYSM_DIR}" && \
+    cd "${PRYSM_DIR}" && \
+    export PRYSM_PLATFORM_ARCH="${PLATFORM_ARCH}" && \
+    if [ "$ARCH" = "amd64" ]; then export PRYSM_PLATFORM_ARCH="modern-${PLATFORM_ARCH}"; fi && \
+    curl -Lo beacon-chain "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/beacon-chain-v${PRYSM_VERSION}-${PRYSM_PLATFORM_ARCH}" && \
+    curl -Lo validator "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/validator-v${PRYSM_VERSION}-${PLATFORM_ARCH}" && \
+    curl -Lo prysmctl "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/prysmctl-v${PRYSM_VERSION}-${PLATFORM_ARCH}" && \
+    chmod +x beacon-chain validator prysmctl
+ENV PATH="${PATH}:${PRYSM_DIR}"
 
-RUN chmod +x beacon-chain validator prysmctl client-stats
-# Add prysm to path
-ENV PATH "${PATH}:${PRYSM_DIR}"
-
-# Download consensus snapshot
-COPY ".${PRYSM_DIR_BASE}/download_checkpoint.sh" .
-RUN bash download_checkpoint.sh
-
-# Download mev-boost and monitoring deps (extra)
-RUN mkdir -p "${EXTRA_DIR}"
-WORKDIR "${EXTRA_DIR}"
-
-COPY ".${EXTRA_DIR_BASE}/prometheus.yml" .
-
-ENV MEV_VERSION 1.7
-ENV MEV_ARCHIVE "mev-boost_${MEV_VERSION}_linux_${ARCH}"
-
-# ENV PROM_VERSION 2.44.0-rc.2
-# ENV PROM_ARCHIVE "prometheus-${PROM_VERSION}.${PLATFORM_ARCH}"
-
-# ENV NODE_VERSION 1.5.0
-# ENV NODE_ARCHIVE "node_exporter-${NODE_VERSION}.${PLATFORM_ARCH}"
-
-ENV BEACONCHAIN_VERSION 0.1.0
-
-RUN curl -LO "https://github.com/flashbots/mev-boost/releases/download/v${MEV_VERSION}/${MEV_ARCHIVE}.tar.gz"
-# RUN curl -LO "https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/${PROM_ARCHIVE}.tar.gz"
-# RUN curl -LO "https://github.com/prometheus/node_exporter/releases/download/v${NODE_VERSION}/${NODE_ARCHIVE}.tar.gz"
-# RUN curl -Lo eth2-client-metrics-exporter "https://github.com/gobitfly/eth2-client-metrics-exporter/releases/download/${BEACONCHAIN_VERSION}/eth2-client-metrics-exporter-${PLATFORM_ARCH}"
-
-RUN tar -xvzf "${MEV_ARCHIVE}.tar.gz"
-# RUN tar -xvzf "${PROM_ARCHIVE}.tar.gz"
-# RUN tar -xvzf "${NODE_ARCHIVE}.tar.gz"
-
-# RUN mv "${PROM_ARCHIVE}/prometheus" . && rm -rf "${PROM_ARCHIVE}"
-# RUN mv "${NODE_ARCHIVE}/node_exporter" . && rm -rf "${NODE_ARCHIVE}"
-
-RUN chmod +x mev-boost 
-# prometheus node_exporter eth2-client-metrics-exporter
-
-# Add extra to path
-ENV PATH "${PATH}:${EXTRA_DIR}"
+# Download mev-boost (extra) - single layer to avoid orphaned archives
+ARG MEVBOOST_VERSION
+ENV MEV_ARCHIVE="mev-boost_${MEVBOOST_VERSION}_linux_${ARCH}"
+RUN mkdir -p "${EXTRA_DIR}" && \
+    cd "${EXTRA_DIR}" && \
+    curl -LO "https://github.com/flashbots/mev-boost/releases/download/v${MEVBOOST_VERSION}/${MEV_ARCHIVE}.tar.gz" && \
+    tar -xvzf "${MEV_ARCHIVE}.tar.gz" && \
+    rm -f "${MEV_ARCHIVE}.tar.gz" && \
+    chmod +x mev-boost
+ENV PATH="${PATH}:${EXTRA_DIR}"
 
 # Run app
 WORKDIR "${ETH_DIR}"
-COPY "scripts/vpn.sh" .
-RUN bash vpn.sh
+COPY vpn vpn
+RUN bash vpn/setup.sh
 
-COPY Staker.py Backup.py Constants.py MEV.py ./
+COPY src/staker src/staker
+ENV PYTHONPATH="${ETH_DIR}/src"
 EXPOSE 30303/tcp 30303/udp 13000/tcp 12000/udp
-ENTRYPOINT ["python3", "Staker.py"]
+ENTRYPOINT ["python3", "-m", "staker.node"]
+
+# =============================================================================
+# DEFAULT STAGE - Ensures tests pass before deploy
+# =============================================================================
+FROM deploy AS default
+
+# This COPY creates a dependency on the test stage
+# Build will fail if tests didn't pass
+COPY --from=test /tmp/.tests_passed /tmp/.tests_passed
