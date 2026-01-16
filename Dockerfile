@@ -24,12 +24,12 @@ ENV EXTRA_DIR="${ETH_DIR}${EXTRA_DIR_BASE}"
 ENV PRYSM_DIR_BASE="/consensus/prysm"
 ENV PRYSM_DIR="${ETH_DIR}${PRYSM_DIR_BASE}"
 
-# Install deps
+# Install deps and uv in single layer
 RUN apt-get update && \
-    apt-get install -y python3 git curl bash make
+    apt-get install -y python3 git curl bash make && \
+    rm -rf /var/lib/apt/lists/* && \
+    curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="${HOME}/.local/bin:${PATH}"
 
 WORKDIR "${ETH_DIR}"
@@ -44,13 +44,8 @@ COPY pyproject.toml uv.lock README.md Makefile ./
 COPY src/ src/
 COPY tests/ tests/
 
-# Install dependencies and run checks using Makefile
-RUN make ci
-RUN make lint
-RUN make cov
-
-# Create a marker file to prove tests passed
-RUN touch /tmp/.tests_passed
+# Install dependencies and run checks in single layer
+RUN make ci && make lint && make cov && touch /tmp/.tests_passed
 
 # =============================================================================
 # DEPLOY STAGE - Runtime image (can be targeted directly to skip tests)
@@ -61,50 +56,44 @@ FROM base AS deploy
 COPY pyproject.toml uv.lock README.md Makefile ./
 RUN make ci DEPLOY=1
 
-# Download geth (execution)
-RUN mkdir -p "${EXEC_DIR}"
-WORKDIR "${EXEC_DIR}"
-ENV PLATFORM_ARCH="linux-${ARCH}"
+# Download geth (execution) - single layer to avoid orphaned archives
 ARG GETH_VERSION
 ARG GETH_COMMIT
+ENV PLATFORM_ARCH="linux-${ARCH}"
 ENV GETH_ARCHIVE="geth-${PLATFORM_ARCH}-${GETH_VERSION}-${GETH_COMMIT}"
-RUN curl -LO "https://gethstore.blob.core.windows.net/builds/${GETH_ARCHIVE}.tar.gz"
-RUN tar -xvzf "${GETH_ARCHIVE}.tar.gz"
-RUN mv "${GETH_ARCHIVE}/geth" . && rm -rf "${GETH_ARCHIVE}"
-
-RUN chmod +x geth
-# Add geth to path
+RUN mkdir -p "${EXEC_DIR}" && \
+    cd "${EXEC_DIR}" && \
+    curl -LO "https://gethstore.blob.core.windows.net/builds/${GETH_ARCHIVE}.tar.gz" && \
+    tar -xvzf "${GETH_ARCHIVE}.tar.gz" && \
+    mv "${GETH_ARCHIVE}/geth" . && \
+    rm -rf "${GETH_ARCHIVE}" "${GETH_ARCHIVE}.tar.gz" && \
+    chmod +x geth
 ENV PATH="${PATH}:${EXEC_DIR}"
 
-# Download prysm (consensus)
-RUN mkdir -p "${PRYSM_DIR}"
-WORKDIR "${PRYSM_DIR}"
+# Download prysm (consensus) - already consolidated
 ARG PRYSM_VERSION
-RUN if [ "$ARCH" = "amd64" ]; \
-    then export PRYSM_PLATFORM_ARCH="modern-${PLATFORM_ARCH}"; \
-    else export PRYSM_PLATFORM_ARCH="${PLATFORM_ARCH}"; \
-    fi; \
-    echo $PRYSM_PLATFORM_ARCH; \
-    curl -Lo beacon-chain "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/beacon-chain-v${PRYSM_VERSION}-${PRYSM_PLATFORM_ARCH}"; \
-    curl -Lo validator "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/validator-v${PRYSM_VERSION}-${PLATFORM_ARCH}"; \
-    curl -Lo prysmctl "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/prysmctl-v${PRYSM_VERSION}-${PLATFORM_ARCH}";
-
-RUN chmod +x beacon-chain validator prysmctl
-# Add prysm to path
+RUN mkdir -p "${PRYSM_DIR}" && \
+    cd "${PRYSM_DIR}" && \
+    if [ "$ARCH" = "amd64" ]; then \
+        export PRYSM_PLATFORM_ARCH="modern-${PLATFORM_ARCH}"; \
+    else \
+        export PRYSM_PLATFORM_ARCH="${PLATFORM_ARCH}"; \
+    fi && \
+    curl -Lo beacon-chain "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/beacon-chain-v${PRYSM_VERSION}-${PRYSM_PLATFORM_ARCH}" && \
+    curl -Lo validator "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/validator-v${PRYSM_VERSION}-${PLATFORM_ARCH}" && \
+    curl -Lo prysmctl "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/prysmctl-v${PRYSM_VERSION}-${PLATFORM_ARCH}" && \
+    chmod +x beacon-chain validator prysmctl
 ENV PATH="${PATH}:${PRYSM_DIR}"
 
-# Download mev-boost (extra)
-RUN mkdir -p "${EXTRA_DIR}"
-WORKDIR "${EXTRA_DIR}"
-
+# Download mev-boost (extra) - single layer to avoid orphaned archives
 ARG MEVBOOST_VERSION
 ENV MEV_ARCHIVE="mev-boost_${MEVBOOST_VERSION}_linux_${ARCH}"
-
-RUN curl -LO "https://github.com/flashbots/mev-boost/releases/download/v${MEVBOOST_VERSION}/${MEV_ARCHIVE}.tar.gz"
-RUN tar -xvzf "${MEV_ARCHIVE}.tar.gz"
-RUN chmod +x mev-boost
-
-# Add extra to path
+RUN mkdir -p "${EXTRA_DIR}" && \
+    cd "${EXTRA_DIR}" && \
+    curl -LO "https://github.com/flashbots/mev-boost/releases/download/v${MEVBOOST_VERSION}/${MEV_ARCHIVE}.tar.gz" && \
+    tar -xvzf "${MEV_ARCHIVE}.tar.gz" && \
+    rm -f "${MEV_ARCHIVE}.tar.gz" && \
+    chmod +x mev-boost
 ENV PATH="${PATH}:${EXTRA_DIR}"
 
 # Run app
