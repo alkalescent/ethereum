@@ -15,6 +15,7 @@ then
     curl -LO https://github.com/eth-clients/hoodi/raw/main/metadata/genesis.ssz
 else
     NODE_HOST="https://beaconstate-mainnet.chainsafe.io"
+    curl -LO https://github.com/eth-clients/mainnet/raw/main/metadata/genesis.ssz 
 fi
 
 # Download checkpoint state and block directly via beacon API
