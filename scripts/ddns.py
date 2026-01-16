@@ -36,7 +36,7 @@ def update_ddns(ip: str) -> dict:
                 {
                     "Action": "UPSERT",
                     "ResourceRecordSet": {
-                        "Name": "eth.forcepu.sh",
+                        "Name": "eth.machine.one",
                         "ResourceRecords": [
                             {
                                 "Value": ip,

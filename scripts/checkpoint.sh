@@ -17,4 +17,13 @@ else
     NODE_HOST="https://beaconstate-mainnet.chainsafe.io"
 fi
 
-prysmctl checkpoint-sync download --beacon-node-host="${NODE_HOST}"
+# Download checkpoint state and block directly via beacon API
+# This bypasses prysmctl which has issues with post-Fusaka (Fulu fork) format
+echo "Downloading checkpoint state from ${NODE_HOST}..."
+curl -H "Accept: application/octet-stream" -o state.ssz "${NODE_HOST}/eth/v2/debug/beacon/states/finalized"
+
+echo "Downloading checkpoint block from ${NODE_HOST}..."
+curl -H "Accept: application/octet-stream" -o block.ssz "${NODE_HOST}/eth/v2/beacon/blocks/finalized"
+
+echo "Checkpoint files downloaded:"
+ls -la *.ssz

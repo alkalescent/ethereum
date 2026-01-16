@@ -54,7 +54,7 @@ Resources:
     Type: AWS::Route53::RecordSet
     Properties: 
       HostedZoneId: !Ref HostedZoneId
-      Name: !Join [ "", [aws., !If [IsProd, "", "dev."], eth.forcepu.sh ] ]
+      Name: !Join [ "", [aws., !If [IsProd, "", "dev."], eth.machine.one ] ]
       ResourceRecords: 
         - !GetAtt ElasticIP.PublicIp
       TTL: 172800

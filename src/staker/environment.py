@@ -77,7 +77,8 @@ class AWSEnvironment(Environment):
 
     def get_p2p_host_dns(self, is_dev: bool) -> str:
         """Get P2P host DNS for AWS environment."""
-        return f"aws.{'dev.' if is_dev else ''}eth.forcepu.sh"
+        # return f"aws.{'dev.' if is_dev else ''}eth.machine.one"
+        return None
 
     def use_colored_logs(self) -> bool:
         """AWS uses plain logs for CloudWatch."""
