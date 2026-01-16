@@ -1,22 +1,22 @@
-name: Deploy ECS
+name: Deploy
 
 on:
   pull_request:
     branches: [master]
   push:
     branches: [master]
-
   workflow_dispatch:
+
+env:
+  DEPLOY_ENV: ${{ fromJSON('["dev", "prod"]')[github.ref_name == 'master'] }}
+  ARCH: arm64
+  # Set AWS=true in repo variables to enable full deploy, otherwise dry-run
+  AWS: ${{ vars.AWS || 'false' }}
 
 jobs:
   build:
+    name: Build & Push
     runs-on: ubuntu-latest
-    env:
-      DEPLOY_ENV: ${{ fromJSON('["dev", "prod"]')[github.ref_name == 'master'] }}
-      ARCH: arm64
-      # Set AWS=true in repo variables to enable full deploy, otherwise dry-run
-      AWS: ${{ vars.AWS || 'false' }}
-      DRY_RUN: ${{ vars.AWS != 'true' }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -71,6 +71,21 @@ jobs:
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
 
+  deploy:
+    name: Deploy Stack
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
       - name: Create parameters.env
         env:
           Subnet: ${{ secrets.SUBNET }}
@@ -80,22 +95,21 @@ jobs:
           EthAddr: ${{ secrets.ETH_ADDR }}
           WalletPass: ${{ secrets.WALLET_PASS }}
         run: |
-          if [[ "${DEPLOY_ENV}" = "dev" ]]
-          then
+          if [[ "${{ env.DEPLOY_ENV }}" = "dev" ]]; then
               ParamsFile=dev-parameters.env
           else
               ParamsFile=parameters.env
           fi
-          echo "
-          DeployEnv=${DEPLOY_ENV}
+          cat > "${ParamsFile}" << EOF
+          DeployEnv=${{ env.DEPLOY_ENV }}
           Subnet=${Subnet}
           VPC=${VPC}
-          Arch=${ARCH}
+          Arch=${{ env.ARCH }}
           SSHPort=${SSHPort}
           HostedZoneId=${HostedZoneId}
           EthAddr=${EthAddr}
           WalletPass=${WalletPass}
-          " >> "${ParamsFile}"
+          EOF
 
       - name: Update ECS stack
         run: make deploy $(if [ "${{ vars.AWS }}" != "true" ]; then echo "DRY=1"; fi)
