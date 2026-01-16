@@ -14,6 +14,7 @@ TTL = 3600
 # IP check domains with failover
 IP_CHECK_DOMAINS: list[str] = ["4.ident.me", "4.tnedi.me"]
 
+
 def get_ip() -> str:
     """Get the current public IP address with failover between domains.
 

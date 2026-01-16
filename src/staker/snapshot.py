@@ -314,10 +314,17 @@ class Snapshot(SnapshotManager):
             template_version,
         )
 
-        instance = next(inst for inst in asg["Instances"] if inst["InstanceId"] == self.instance_id)
-        refresh_instance = not is_latest_version(
-            str(instance["LaunchTemplate"]["Version"]),
-            template_version,
+        instance = next(
+            (inst for inst in asg["Instances"] if inst["InstanceId"] == self.instance_id),
+            None,
+        )
+        refresh_instance = (
+            not is_latest_version(
+                str(instance["LaunchTemplate"]["Version"]),
+                template_version,
+            )
+            if instance
+            else False
         )
 
         if update_asg:
@@ -339,9 +346,10 @@ class Snapshot(SnapshotManager):
             containerInstances=container_instance_arns,
         )["containerInstances"]
         container_instance = next(
-            inst for inst in container_instances if inst["ec2InstanceId"] == self.instance_id
+            (inst for inst in container_instances if inst["ec2InstanceId"] == self.instance_id),
+            None,
         )
-        return container_instance["status"] == "DRAINING"
+        return container_instance["status"] == "DRAINING" if container_instance else False
 
     def backup(self) -> dict[str, Any] | None:
         """Create a backup snapshot if needed.
