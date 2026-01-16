@@ -19,8 +19,8 @@ ENV ARCH="${ARCH:-arm64}"
 ENV VPN="${VPN:-false}"
 ENV ETH_DIR="${HOME}/ethereum"
 ENV EXEC_DIR="${ETH_DIR}/execution"
-ENV EXTRA_DIR_BASE="/extra"
-ENV EXTRA_DIR="${ETH_DIR}${EXTRA_DIR_BASE}"
+ENV MEV_DIR_BASE="/mev"
+ENV MEV_DIR="${ETH_DIR}${MEV_DIR_BASE}"
 ENV PRYSM_DIR_BASE="/consensus/prysm"
 ENV PRYSM_DIR="${ETH_DIR}${PRYSM_DIR_BASE}"
 
@@ -82,16 +82,16 @@ RUN mkdir -p "${PRYSM_DIR}" && \
     chmod +x beacon-chain validator prysmctl
 ENV PATH="${PATH}:${PRYSM_DIR}"
 
-# Download mev-boost (extra) - single layer to avoid orphaned archives
+# Download mev-boost
 ARG MEVBOOST_VERSION
 ENV MEV_ARCHIVE="mev-boost_${MEVBOOST_VERSION}_linux_${ARCH}"
-RUN mkdir -p "${EXTRA_DIR}" && \
-    cd "${EXTRA_DIR}" && \
+RUN mkdir -p "${MEV_DIR}" && \
+    cd "${MEV_DIR}" && \
     curl -LO "https://github.com/flashbots/mev-boost/releases/download/v${MEVBOOST_VERSION}/${MEV_ARCHIVE}.tar.gz" && \
     tar -xvzf "${MEV_ARCHIVE}.tar.gz" && \
     rm -f "${MEV_ARCHIVE}.tar.gz" && \
     chmod +x mev-boost
-ENV PATH="${PATH}:${EXTRA_DIR}"
+ENV PATH="${PATH}:${MEV_DIR}"
 
 # Run app
 WORKDIR "${ETH_DIR}"
