@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     branches:
-      - main
+      - master
 
 permissions:
   contents: write
@@ -66,11 +66,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        ref: main
+        ref: master
         fetch-depth: 1
     
     - name: Pull latest changes
-      run: git pull origin main
+      run: git pull origin master
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -106,7 +106,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        ref: main
+        ref: master
     
     - name: Create Release
       uses: softprops/action-gh-release@v2
