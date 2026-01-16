@@ -160,7 +160,13 @@ class Node:
         checkpoint_url = get_checkpoint_url(network)
         args.append(f"--checkpoint-sync-url={checkpoint_url}")
         args.append(f"--genesis-beacon-api-url={checkpoint_url}")
-        args.append(f"--weak-subjectivity-checkpoint={get_checkpoint(network)}")
+
+        # Try to fetch weak subjectivity checkpoint, but don't fail if unavailable
+        try:
+            checkpoint = get_checkpoint(network)
+            args.append(f"--weak-subjectivity-checkpoint={checkpoint}")
+        except Exception as e:
+            logging.warning(f"Failed to fetch weak subjectivity checkpoint: {e}")
 
         if DOCKER:
             args.append(f"--datadir={self.prysm_data_dir}")
