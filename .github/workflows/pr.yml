@@ -3,7 +3,7 @@ name: Pull Request
 on:
   pull_request:
     branches:
-      - main
+      - master
 
 permissions:
   contents: write  # Needed to push QR code updates
@@ -36,7 +36,7 @@ jobs:
       uses: astral-sh/setup-uv@v7
     
     - name: Install dependencies
-      run: uv sync
+      run: make ci
     
     - name: Generate QR codes
       run: uv run python scripts/qr.py
