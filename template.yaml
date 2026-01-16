@@ -39,14 +39,18 @@ Parameters:
   WalletPass:
     Type: "String"
     NoEcho: true
+  SnapshotId:
+    Type: "String"
+    Description: "EBS Snapshot ID to restore from (leave empty for fresh volume)"
+    Default: ""
 
 Conditions:
   UseAMD64:
     !Equals [!Ref Arch, amd64]
   IsProd:
     !Equals [!Ref DeployEnv, prod]
-  HasValidSnapshot:
-    !Not [!Equals [!GetAtt SnapshotValidation.SnapshotId, ""]]
+  HasSnapshot:
+    !Not [!Equals [!Ref SnapshotId, ""]]
 
 Resources:
   EIPDNSRecord:
@@ -110,11 +114,11 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
       RoleName: !Sub "${DeployEnv}StakingExecutionRole"
-  # ElasticIP:
-  #   Type: AWS::EC2::EIP
-  #   Properties: 
-  #     Domain: vpc
-  #     NetworkBorderGroup: !Ref AWS::Region
+  ElasticIP:
+    Type: AWS::EC2::EIP
+    Properties: 
+      Domain: vpc
+      NetworkBorderGroup: !Ref AWS::Region
   InstanceProfile:
     DependsOn: InstanceRole
     Type: AWS::IAM::InstanceProfile
@@ -123,93 +127,8 @@ Resources:
       Roles: 
         - !Sub "${DeployEnv}StakingInstanceRole"
 
-  # Snapshot Validation Lambda - checks if SSM param references existing snapshot
-  SnapshotValidatorRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Sub "${DeployEnv}SnapshotValidatorRole"
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: SnapshotValidatorPolicy
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - ssm:GetParameter
-                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${DeployEnv}_staking_snapshot"
-              - Effect: Allow
-                Action:
-                  - ec2:DescribeSnapshots
-                Resource: "*"
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${DeployEnv}SnapshotValidator:*"
-
-  SnapshotValidatorFunction:
-    Type: AWS::Lambda::Function
-    DependsOn: SnapshotValidatorRole
-    Properties:
-      FunctionName: !Sub "${DeployEnv}SnapshotValidator"
-      Runtime: python3.12
-      Handler: index.handler
-      Role: !GetAtt SnapshotValidatorRole.Arn
-      Timeout: 30
-      Environment:
-        Variables:
-          PARAM_NAME: !Sub "${DeployEnv}_staking_snapshot"
-      Code:
-        ZipFile: |
-          import boto3
-          import cfnresponse
-          import os
-
-          def handler(event, context):
-              """Check if SSM param exists and references a valid snapshot."""
-              if event['RequestType'] == 'Delete':
-                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
-                  return
-
-              ssm = boto3.client('ssm')
-              ec2 = boto3.client('ec2')
-              param_name = os.environ['PARAM_NAME']
-              
-              try:
-                  # Get SSM parameter
-                  response = ssm.get_parameter(Name=param_name)
-                  snapshot_id = response['Parameter']['Value']
-                  
-                  if not snapshot_id:
-                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {'SnapshotId': ''})
-                      return
-                  
-                  # Check if snapshot exists
-                  ec2.describe_snapshots(SnapshotIds=[snapshot_id])
-                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {'SnapshotId': snapshot_id})
-                  
-              except ssm.exceptions.ParameterNotFound:
-                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {'SnapshotId': ''})
-              except ec2.exceptions.ClientError:
-                  # Snapshot doesn't exist
-                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {'SnapshotId': ''})
-              except Exception as e:
-                  print(f"Error: {e}")
-                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {'SnapshotId': ''})
-
-  SnapshotValidation:
-    Type: Custom::SnapshotValidator
-    DependsOn: SnapshotValidatorFunction
-    Properties:
-      ServiceToken: !GetAtt SnapshotValidatorFunction.Arn
+  # Note: Snapshots are managed by Python app at runtime (src/staker/snapshot.py)
+  # The app dynamically creates launch template versions with SnapshotId when needed
 
   TaskRole:
     Type: AWS::IAM::Role
@@ -403,7 +322,7 @@ Resources:
     DependsOn: 
       - SecurityGroup
       - InstanceProfile
-      # - ElasticIP
+      - ElasticIP
     Type: AWS::EC2::LaunchTemplate
     Properties: 
       LaunchTemplateData:
@@ -414,8 +333,8 @@ Resources:
               DeleteOnTermination: true
               VolumeSize: !If [IsProd, 1500, 500]
               VolumeType: gp3
-              # Use snapshot if Lambda validated it exists, otherwise create fresh volume
-              SnapshotId: !If [HasValidSnapshot, !GetAtt SnapshotValidation.SnapshotId, !Ref "AWS::NoValue"]
+              # Use snapshot if provided via SnapshotId parameter, otherwise fresh volume
+              SnapshotId: !If [HasSnapshot, !Ref SnapshotId, !Ref "AWS::NoValue"]
         DisableApiStop: false
         DisableApiTermination: false
         EbsOptimized: true

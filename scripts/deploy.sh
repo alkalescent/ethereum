@@ -13,11 +13,27 @@ else
     ParamsFile=parameters.env
 fi
 
+# Fetch validated SnapshotId from SSM (if exists and valid)
+SNAPSHOT_ID=""
+SSM_PARAM="${DEPLOY_ENV}_staking_snapshot"
+
+if SNAPSHOT_ID=$(aws ssm get-parameter --name "${SSM_PARAM}" --query 'Parameter.Value' --output text 2>/dev/null); then
+    # Verify snapshot exists
+    if [[ -n "${SNAPSHOT_ID}" ]] && aws ec2 describe-snapshots --snapshot-ids "${SNAPSHOT_ID}" &>/dev/null; then
+        echo "📦 Found valid snapshot: ${SNAPSHOT_ID}"
+    else
+        echo "⚠️  Snapshot ${SNAPSHOT_ID} not found or invalid, starting fresh"
+        SNAPSHOT_ID=""
+    fi
+else
+    echo "ℹ️  No snapshot parameter found, starting fresh"
+fi
+
 # Build deploy command
 DEPLOY_CMD="aws cloudformation deploy \
     --stack-name ECS-${DEPLOY_ENV}-staking-cluster \
     --template-file template.yaml \
-    --parameter-overrides $(cat "${ParamsFile}") \
+    --parameter-overrides $(cat "${ParamsFile}") SnapshotId=${SNAPSHOT_ID} \
     --capabilities CAPABILITY_NAMED_IAM"
 
 if [[ "${DRY_RUN}" = "true" ]]; then
