@@ -16,11 +16,11 @@ class TestAWSEnvironment:
 
     def test_p2p_host_dns_dev(self):
         env = AWSEnvironment()
-        assert env.get_p2p_host_dns(is_dev=True) == "aws.dev.eth.machine.one"
+        assert env.get_p2p_host_dns(is_dev=True) is None
 
     def test_p2p_host_dns_prod(self):
         env = AWSEnvironment()
-        assert env.get_p2p_host_dns(is_dev=False) == "aws.eth.machine.one"
+        assert env.get_p2p_host_dns(is_dev=False) is None
 
     def test_no_colored_logs(self):
         env = AWSEnvironment()

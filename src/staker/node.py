@@ -152,13 +152,13 @@ class Node:
             "--enable-backfill",
         ]
 
-        prysm_dir = "./consensus/prysm"
+        # Network-specific configuration using f-strings
+        network = "hoodi" if DEV else "mainnet"
+        args.append(f"--{network}")
 
-        if DEV:
-            args.append("--hoodi")
-            args.append(f"--genesis-state={prysm_dir}/genesis.ssz")
-        else:
-            args.append("--mainnet")
+        # ChainSafe checkpoint sync URLs (consistent provider for both networks)
+        args.append(f"--checkpoint-sync-url=https://beaconstate-{network}.chainsafe.io")
+        args.append(f"--genesis-beacon-api-url=https://beaconstate-{network}.chainsafe.io")
 
         if DOCKER:
             args.append(f"--datadir={self.prysm_data_dir}")
@@ -167,14 +167,6 @@ class Node:
         if p2p_host:
             args.append(f"--p2p-host-dns={p2p_host}")
 
-        state_filename = glob(f"{prysm_dir}/state*.ssz")[0]
-        block_filename = glob(f"{prysm_dir}/block*.ssz")[0]
-        args += [
-            f"--checkpoint-state={state_filename}",
-            f"--checkpoint-block={block_filename}",
-            "--checkpoint-sync-url=https://sync-mainnet.beaconcha.in",
-            "--genesis-beacon-api-url=https://sync-mainnet.beaconcha.in",
-        ]
         cmd = ["beacon-chain"] + args
         return self._run_cmd(cmd)
 

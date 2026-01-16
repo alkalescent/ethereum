@@ -510,7 +510,6 @@ class TestNodeClientProcesses:
         assert any("--datadir=" in arg for arg in call_args)
 
     def test_consensus_includes_checkpoint_sync(self, node, mocker):
-        mocker.patch("staker.node.glob", return_value=["prysm/state.ssz"])
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
         node._consensus()
 
@@ -558,7 +557,6 @@ class TestNodeProductionMode:
 
     def test_consensus_includes_mainnet(self, node, mocker):
         """Test consensus uses --mainnet in production."""
-        mocker.patch("staker.node.glob", return_value=["prysm/state.ssz"])
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
         node._consensus()
 
@@ -587,7 +585,6 @@ class TestNodeProductionMode:
 
     def test_consensus_includes_p2p_host_dns(self, node, mocker):
         """Test consensus includes p2p-host-dns when available."""
-        mocker.patch("staker.node.glob", return_value=["prysm/state.ssz"])
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
 
         # Mock environment to return a p2p host
@@ -613,7 +610,6 @@ class TestNodeVPN:
     def test_vpn_creates_creds_file(self, node, mocker, tmp_path):
         """Test VPN creates secure temp file with credentials."""
         mocker.patch.dict(os.environ, {"VPN_USER": "testuser", "VPN_PASS": "testpass"})
-        mocker.patch("staker.node.glob", return_value=["config/us1.tcp.ovpn"])
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
         mocker.patch("staker.node.choice", return_value="config/us1.tcp.ovpn")
 
