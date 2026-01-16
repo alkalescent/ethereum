@@ -89,7 +89,7 @@ RUN mkdir -p "${MEV_DIR}" && \
     cd "${MEV_DIR}" && \
     curl -LO "https://github.com/flashbots/mev-boost/releases/download/v${MEVBOOST_VERSION}/${MEV_ARCHIVE}.tar.gz" && \
     tar -xvzf "${MEV_ARCHIVE}.tar.gz" && \
-    rm -f "${MEV_ARCHIVE}.tar.gz" && \
+    rm -f "${MEV_ARCHIVE}.tar.gz" LICENSE README.md && \
     chmod +x mev-boost
 ENV PATH="${PATH}:${MEV_DIR}"
 
