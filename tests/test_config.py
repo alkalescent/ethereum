@@ -7,7 +7,7 @@ from staker.config import (
     DOCKER,
     LOG_STYLES,
     RELAYS,
-    RELAYS_HOLESKY,
+    RELAYS_HOODI,
     RELAYS_MAINNET,
     get_env_bool,
 )
@@ -57,12 +57,12 @@ class TestConstants:
     def test_relays_mainnet_not_empty(self):
         assert len(RELAYS_MAINNET) > 0
 
-    def test_relays_holesky_not_empty(self):
-        assert len(RELAYS_HOLESKY) > 0
+    def test_relays_hoodi_not_empty(self):
+        assert len(RELAYS_HOODI) > 0
 
     def test_relays_matches_dev_setting(self):
         if DEV:
-            assert RELAYS == RELAYS_HOLESKY
+            assert RELAYS == RELAYS_HOODI
         else:
             assert RELAYS == RELAYS_MAINNET
 

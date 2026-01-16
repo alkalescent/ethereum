@@ -495,12 +495,12 @@ class TestNodeClientProcesses:
         env = MockEnvironment(logs_path=str(logs_file))
         return Node(env=env, snapshot=NoOpSnapshotManager())
 
-    def test_execution_includes_holesky_for_dev(self, node, mocker):
+    def test_execution_includes_hoodi_for_dev(self, node, mocker):
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
         node._execution()
 
         call_args = mock_run.call_args[0][0]
-        assert "--holesky" in call_args
+        assert "--hoodi" in call_args
 
     def test_execution_includes_datadir_for_docker(self, node, mocker):
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
@@ -554,7 +554,7 @@ class TestNodeProductionMode:
 
         call_args = mock_run.call_args[0][0]
         assert "--mainnet" in call_args
-        assert "--holesky" not in call_args
+        assert "--hoodi" not in call_args
 
     def test_consensus_includes_mainnet(self, node, mocker):
         """Test consensus uses --mainnet in production."""
@@ -564,7 +564,7 @@ class TestNodeProductionMode:
 
         call_args = mock_run.call_args[0][0]
         assert "--mainnet" in call_args
-        assert "--holesky" not in call_args
+        assert "--hoodi" not in call_args
 
     def test_validation_includes_mainnet(self, node, mocker):
         """Test validation uses --mainnet in production."""
@@ -573,7 +573,7 @@ class TestNodeProductionMode:
 
         call_args = mock_run.call_args[0][0]
         assert "--mainnet" in call_args
-        assert "--holesky" not in call_args
+        assert "--hoodi" not in call_args
 
     def test_mev_includes_mainnet(self, node, mocker):
         """Test mev-boost uses -mainnet in production."""
@@ -583,7 +583,7 @@ class TestNodeProductionMode:
 
         call_args = mock_run.call_args[0][0]
         assert "-mainnet" in call_args
-        assert "-holesky" not in call_args
+        assert "-hoodi" not in call_args
 
     def test_consensus_includes_p2p_host_dns(self, node, mocker):
         """Test consensus includes p2p-host-dns when available."""

@@ -76,7 +76,7 @@ class Node:
         geth_dir_base = f"/{'Library/Ethereum' if on_mac else '.ethereum'}"
         prysm_dir_base = f"/{'Library/Eth2' if on_mac else '.eth2'}"
         prysm_wallet_postfix = f"{'V' if on_mac else 'v'}alidators/prysm-wallet-v2"
-        geth_dir_postfix = "/holesky" if DEV else ""
+        geth_dir_postfix = "/hoodi" if DEV else ""
 
         self.geth_data_dir = f"{prefix}{geth_dir_base}{geth_dir_postfix}"
         self.prysm_data_dir = f"{prefix}{prysm_dir_base}"
@@ -127,7 +127,7 @@ class Node:
         ]
 
         if DEV:
-            args.append("--holesky")
+            args.append("--hoodi")
         else:
             args.append("--mainnet")
 
@@ -155,7 +155,7 @@ class Node:
         prysm_dir = "./consensus/prysm"
 
         if DEV:
-            args.append("--holesky")
+            args.append("--hoodi")
             args.append(f"--genesis-state={prysm_dir}/genesis.ssz")
         else:
             args.append("--mainnet")
@@ -193,7 +193,7 @@ class Node:
         ]
 
         if DEV:
-            args.append("--holesky")
+            args.append("--hoodi")
         else:
             args.append("--mainnet")
 
@@ -208,7 +208,7 @@ class Node:
         """
         args = ["-relay-check"]
         if DEV:
-            args.append("-holesky")
+            args.append("-hoodi")
         else:
             args.append("-mainnet")
 

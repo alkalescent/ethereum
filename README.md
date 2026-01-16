@@ -119,7 +119,7 @@ src/staker/
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `DEPLOY_ENV` | `dev` (Holesky testnet) or `prod` (Mainnet) | ✅ |
+| `DEPLOY_ENV` | `dev` (Hoodi testnet) or `prod` (Mainnet) | ✅ |
 | `ETH_ADDR` | Fee recipient address | ✅ |
 | `AWS` | Set to `true` when running on AWS | ❌ |
 | `DOCKER` | Set to `true` when running in container | ❌ |
@@ -151,9 +151,9 @@ make deploy    # Deploy to AWS
 
 The node connects to multiple MEV relays for optimal block building:
 
-**Mainnet**: Flashbots, Ultra Sound, bloXroute, Aestus, Agnostic, Eden, Manifold, Titan, Proof, Wenmerge
+**Mainnet**: Flashbots, Ultra Sound, bloXroute, Aestus, Agnostic, Titan, Wenmerge
 
-**Holesky**: Flashbots, Aestus, Ultra Sound, bloXroute
+**Hoodi**: Flashbots, Aestus, bloXroute, Titan
 
 Relays are automatically tested on startup; unreliable ones are filtered out.
 
