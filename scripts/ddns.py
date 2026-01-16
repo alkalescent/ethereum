@@ -11,13 +11,26 @@ load_dotenv(find_dotenv("config.env"))
 
 TTL = 3600
 
+# IP check domains with failover
+IP_CHECK_DOMAINS: list[str] = ["4.ident.me", "4.tnedi.me"]
 
-def get_ip() -> str | None:
-    """Fetch the current public IP address."""
-    response = requests.get("https://4.ident.me", timeout=10)
-    if response.ok:
-        return response.text
-    return None
+def get_ip() -> str:
+    """Get the current public IP address with failover between domains.
+
+    Tries each domain in IP_CHECK_DOMAINS, rotating on failure until
+    one succeeds. Logs failures to console.
+
+    Returns:
+        The public IP address as a string.
+    """
+    domain_idx = 0
+    while True:
+        domain = IP_CHECK_DOMAINS[domain_idx]
+        try:
+            return requests.get(f"https://{domain}", timeout=5).text
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to reach {domain}: {e}, trying alternate...")
+            domain_idx = (domain_idx + 1) % len(IP_CHECK_DOMAINS)
 
 
 def update_ddns(ip: str) -> dict:
