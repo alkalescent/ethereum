@@ -13,7 +13,9 @@ import signal
 import subprocess
 import sys
 import tempfile
+import urllib.request
 from glob import glob
+from json import load as json_load
 from random import choice
 from time import sleep, time
 from typing import IO
@@ -39,6 +41,34 @@ home_dir = os.path.expanduser("~")
 platform = sys.platform.lower()
 console = Console(highlight=False)
 print = console.print
+
+
+def get_checkpoint_url(network: str) -> str:
+    """Get the ChainSafe checkpoint sync URL for a network.
+
+    Args:
+        network: Network name ('hoodi' or 'mainnet').
+
+    Returns:
+        The ChainSafe beacon state URL for the network.
+    """
+    return f"https://beaconstate-{network}.chainsafe.io"
+
+
+def get_checkpoint(network: str) -> str:
+    """Fetch the current weak subjectivity checkpoint from ChainSafe.
+
+    Args:
+        network: Network name ('hoodi' or 'mainnet').
+
+    Returns:
+        Checkpoint in block_root:epoch format.
+    """
+    url = f"{get_checkpoint_url(network)}/eth/v1/beacon/states/finalized/finality_checkpoints"
+    with urllib.request.urlopen(url, timeout=30) as response:
+        data = json_load(response)
+        finalized = data["data"]["finalized"]
+        return f"{finalized['root']}:{finalized['epoch']}"
 
 
 class Node:
@@ -152,13 +182,15 @@ class Node:
             "--enable-backfill",
         ]
 
-        # Network-specific configuration using f-strings
+        # Network-specific configuration
         network = "hoodi" if DEV else "mainnet"
         args.append(f"--{network}")
 
-        # ChainSafe checkpoint sync URLs (consistent provider for both networks)
-        args.append(f"--checkpoint-sync-url=https://beaconstate-{network}.chainsafe.io")
-        args.append(f"--genesis-beacon-api-url=https://beaconstate-{network}.chainsafe.io")
+        # ChainSafe checkpoint sync (strongly recommended with weak subjectivity checkpoint)
+        checkpoint_url = get_checkpoint_url(network)
+        args.append(f"--checkpoint-sync-url={checkpoint_url}")
+        args.append(f"--genesis-beacon-api-url={checkpoint_url}")
+        args.append(f"--weak-subjectivity-checkpoint={get_checkpoint(network)}")
 
         if DOCKER:
             args.append(f"--datadir={self.prysm_data_dir}")
