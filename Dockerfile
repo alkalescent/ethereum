@@ -70,15 +70,12 @@ RUN mkdir -p "${EXEC_DIR}" && \
     chmod +x geth
 ENV PATH="${PATH}:${EXEC_DIR}"
 
-# Download prysm (consensus) - already consolidated
+# Download prysm (consensus)
 ARG PRYSM_VERSION
 RUN mkdir -p "${PRYSM_DIR}" && \
     cd "${PRYSM_DIR}" && \
-    if [ "$ARCH" = "amd64" ]; then \
-        export PRYSM_PLATFORM_ARCH="modern-${PLATFORM_ARCH}"; \
-    else \
-        export PRYSM_PLATFORM_ARCH="${PLATFORM_ARCH}"; \
-    fi && \
+    export PRYSM_PLATFORM_ARCH="${PLATFORM_ARCH}" && \
+    if [ "$ARCH" = "amd64" ]; then export PRYSM_PLATFORM_ARCH="modern-${PLATFORM_ARCH}"; fi && \
     curl -Lo beacon-chain "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/beacon-chain-v${PRYSM_VERSION}-${PRYSM_PLATFORM_ARCH}" && \
     curl -Lo validator "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/validator-v${PRYSM_VERSION}-${PLATFORM_ARCH}" && \
     curl -Lo prysmctl "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/prysmctl-v${PRYSM_VERSION}-${PLATFORM_ARCH}" && \

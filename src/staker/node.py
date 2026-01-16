@@ -166,7 +166,9 @@ class Node:
             checkpoint = get_checkpoint(network)
             args.append(f"--weak-subjectivity-checkpoint={checkpoint}")
         except Exception as e:
-            logging.warning(f"Failed to fetch weak subjectivity checkpoint: {e}")
+            print(
+                f"[bright_yellow]WARNING: Failed to fetch weak subjectivity checkpoint: {e}[/bright_yellow]"
+            )
 
         if DOCKER:
             args.append(f"--datadir={self.prysm_data_dir}")
