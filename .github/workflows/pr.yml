@@ -76,7 +76,7 @@ jobs:
         WITH_V: true
         PRERELEASE: true
         PRERELEASE_SUFFIX: rc
-        BRANCH_HISTORY: compare
+        BRANCH_HISTORY: last
         INITIAL_VERSION: 0.1.0
     
     - name: Set up Python
