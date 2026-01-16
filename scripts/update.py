@@ -4,11 +4,11 @@
 Auto-commits and pushes if not on master branch.
 """
 
-import json
 import subprocess
 import sys
-import urllib.request
 from pathlib import Path
+
+import requests
 
 # GitHub repos to fetch versions from
 REPOS = {
@@ -18,15 +18,15 @@ REPOS = {
 }
 
 VERSIONS_FILE = Path(__file__).parent.parent / "versions.env"
+GITHUB_HEADERS = {"Accept": "application/vnd.github.v3+json"}
 
 
 def get_latest_release(repo: str) -> dict:
     """Fetch latest non-prerelease release from GitHub API."""
     url = f"https://api.github.com/repos/{repo}/releases"
-    req = urllib.request.Request(url, headers={"Accept": "application/vnd.github.v3+json"})
-
-    with urllib.request.urlopen(req, timeout=30) as response:
-        releases = json.loads(response.read().decode())
+    response = requests.get(url, headers=GITHUB_HEADERS, timeout=30)
+    response.raise_for_status()
+    releases = response.json()
 
     for release in releases:
         # Skip prereleases and drafts
@@ -55,11 +55,11 @@ def parse_geth_version(release: dict) -> tuple[str, str]:
     # Fetch commit SHA from the git tag
     repo = "ethereum/go-ethereum"
     url = f"https://api.github.com/repos/{repo}/git/refs/tags/{tag}"
-    req = urllib.request.Request(url, headers={"Accept": "application/vnd.github.v3+json"})
 
     try:
-        with urllib.request.urlopen(req, timeout=30) as response:
-            ref_data = json.loads(response.read().decode())
+        response = requests.get(url, headers=GITHUB_HEADERS, timeout=30)
+        response.raise_for_status()
+        ref_data = response.json()
 
         # The ref might point to a tag object or directly to a commit
         sha = ref_data.get("object", {}).get("sha", "")
@@ -68,8 +68,9 @@ def parse_geth_version(release: dict) -> tuple[str, str]:
         # If it's a tag object, we need to dereference it
         if obj_type == "tag":
             tag_url = ref_data["object"]["url"]
-            with urllib.request.urlopen(tag_url, timeout=30) as tag_response:
-                tag_data = json.loads(tag_response.read().decode())
+            tag_response = requests.get(tag_url, timeout=30)
+            tag_response.raise_for_status()
+            tag_data = tag_response.json()
             sha = tag_data.get("object", {}).get("sha", sha)
 
         return version, sha[:8]

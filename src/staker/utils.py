@@ -41,3 +41,32 @@ def colorize_log(text: str) -> str:
     for key, style in LOG_STYLES.items():
         text = text.replace(key, f"[{style}]{key}[/{style}]")
     return text
+
+
+def get_checkpoint_url(network: str) -> str:
+    """Get the ChainSafe checkpoint sync URL for a network.
+
+    Args:
+        network: Network name ('hoodi' or 'mainnet').
+
+    Returns:
+        The ChainSafe beacon state URL for the network.
+    """
+    return f"https://beaconstate-{network}.chainsafe.io"
+
+
+def get_checkpoint(network: str) -> str:
+    """Fetch the current weak subjectivity checkpoint from ChainSafe.
+
+    Args:
+        network: Network name ('hoodi' or 'mainnet').
+
+    Returns:
+        Checkpoint in block_root:epoch format.
+    """
+    url = f"{get_checkpoint_url(network)}/eth/v1/beacon/states/finalized/finality_checkpoints"
+    response = requests.get(url, timeout=30)
+    response.raise_for_status()
+    data = response.json()
+    finalized = data["data"]["finalized"]
+    return f"{finalized['root']}:{finalized['epoch']}"

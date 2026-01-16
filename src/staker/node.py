@@ -13,9 +13,7 @@ import signal
 import subprocess
 import sys
 import tempfile
-import urllib.request
 from glob import glob
-from json import load as json_load
 from random import choice
 from time import sleep, time
 from typing import IO
@@ -35,40 +33,12 @@ from staker.config import (
 from staker.environment import AWSEnvironment, Environment, LocalEnvironment
 from staker.mev import Booster
 from staker.snapshot import NoOpSnapshotManager, Snapshot, SnapshotManager
-from staker.utils import colorize_log, get_public_ip
+from staker.utils import colorize_log, get_checkpoint, get_checkpoint_url, get_public_ip
 
 home_dir = os.path.expanduser("~")
 platform = sys.platform.lower()
 console = Console(highlight=False)
 print = console.print
-
-
-def get_checkpoint_url(network: str) -> str:
-    """Get the ChainSafe checkpoint sync URL for a network.
-
-    Args:
-        network: Network name ('hoodi' or 'mainnet').
-
-    Returns:
-        The ChainSafe beacon state URL for the network.
-    """
-    return f"https://beaconstate-{network}.chainsafe.io"
-
-
-def get_checkpoint(network: str) -> str:
-    """Fetch the current weak subjectivity checkpoint from ChainSafe.
-
-    Args:
-        network: Network name ('hoodi' or 'mainnet').
-
-    Returns:
-        Checkpoint in block_root:epoch format.
-    """
-    url = f"{get_checkpoint_url(network)}/eth/v1/beacon/states/finalized/finality_checkpoints"
-    with urllib.request.urlopen(url, timeout=30) as response:
-        data = json_load(response)
-        finalized = data["data"]["finalized"]
-        return f"{finalized['root']}:{finalized['epoch']}"
 
 
 class Node:

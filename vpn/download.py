@@ -6,13 +6,13 @@ keeping only geographically suitable US servers.
 
 import os
 import shutil
-import urllib.request
 from glob import glob
 from multiprocessing import Pool
 from pathlib import Path
 from zipfile import ZipFile
 
 import geoip2.database
+import requests
 
 CONFIG_DIR = "config"
 DB_URL = "https://git.io/GeoLite2-City.mmdb"
@@ -27,7 +27,10 @@ UNZIP_PATH = os.path.join(CONFIG_DIR, VPN_DIR)
 
 def download_db() -> None:
     """Download the GeoLite2 City database."""
-    urllib.request.urlretrieve(DB_URL, DB_PATH)
+    response = requests.get(DB_URL, timeout=60)
+    response.raise_for_status()
+    with open(DB_PATH, "wb") as f:
+        f.write(response.content)
 
 
 def download_file(url: str) -> str:
@@ -40,7 +43,10 @@ def download_file(url: str) -> str:
         The local path where the file was saved.
     """
     filename = os.path.join(CONFIG_DIR, url.split("/")[-1])
-    urllib.request.urlretrieve(url, filename)
+    response = requests.get(url, timeout=60)
+    response.raise_for_status()
+    with open(filename, "wb") as f:
+        f.write(response.content)
     return filename
 
 
