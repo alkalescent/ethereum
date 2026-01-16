@@ -276,7 +276,7 @@ Resources:
           Type: ECS
         DesiredCount: !Ref DesiredCapacity
         EnableECSManagedTags: true
-        # EnableExecuteCommand: true
+        EnableExecuteCommand: true
         # https://github.com/aws/aws-cli/issues/6242
         LaunchType: EC2
         PlacementStrategies: 
