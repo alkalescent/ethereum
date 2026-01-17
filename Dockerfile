@@ -52,9 +52,9 @@ RUN make ci && make lint && make cov && touch /tmp/.tests_passed
 # =============================================================================
 FROM base AS deploy
 
-# Install Python dependencies (runtime only)
+# Install Python dependencies (all groups including build deps)
 COPY pyproject.toml uv.lock README.md Makefile ./
-RUN make ci DEPLOY=1
+RUN make ci
 
 # Download geth (execution) - single layer to avoid orphaned archives
 ARG GETH_VERSION
@@ -94,14 +94,12 @@ RUN mkdir -p "${MEV_DIR}" && \
 ENV PATH="${PATH}:${MEV_DIR}"
 
 # Setup VPN configs (if VPN=true)
-# Install build deps (geoip2) only when needed, then remove to keep image small
 WORKDIR "${ETH_DIR}"
 COPY vpn vpn
-RUN if [ "${VPN}" = "true" ]; then \
-        make ci BUILD=1 && \
-        bash vpn/setup.sh && \
-        make ci DEPLOY=1; \
-    fi
+RUN if [ "${VPN}" = "true" ]; then bash vpn/setup.sh; fi
+
+# Clean up to runtime-only deps (removes geoip2 and dev deps)
+RUN make ci DEPLOY=1
 
 COPY src/staker src/staker
 ENV PYTHONPATH="${ETH_DIR}/src"
