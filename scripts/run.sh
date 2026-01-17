@@ -22,6 +22,7 @@ docker run \
     -v ~:/mnt/ebs \
     --dns 8.8.8.8 \
     --name ethereum \
+    --init \
     --rm \
     --tty \
   ethereum
