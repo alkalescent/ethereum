@@ -101,14 +101,12 @@ RUN if [ "${VPN}" = "true" ]; then \
         make ci && \
         bash vpn/setup.sh && \
         make ci DEPLOY=1; \
-    else \
-        make ci DEPLOY=1; \
     fi
 
 COPY src/staker src/staker
 ENV PYTHONPATH="${ETH_DIR}/src"
 EXPOSE 30303/tcp 30303/udp 13000/tcp 12000/udp
-ENTRYPOINT ["python3", "-m", "staker.node"]
+ENTRYPOINT ["uv", "run", "python", "-m", "staker.node"]
 
 # =============================================================================
 # DEFAULT STAGE - Ensures tests pass before deploy
