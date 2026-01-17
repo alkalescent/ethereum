@@ -106,7 +106,7 @@ RUN if [ "${VPN}" = "true" ]; then \
 COPY src/staker src/staker
 ENV PYTHONPATH="${ETH_DIR}/src"
 EXPOSE 30303/tcp 30303/udp 13000/tcp 12000/udp
-ENTRYPOINT ["uv", "run", "python", "-m", "staker.node"]
+ENTRYPOINT [".venv/bin/python", "-m", "staker.node"]
 
 # =============================================================================
 # DEFAULT STAGE - Ensures tests pass before deploy
