@@ -101,6 +101,8 @@ RUN if [ "${VPN}" = "true" ]; then \
         make ci && \
         bash vpn/setup.sh && \
         make ci DEPLOY=1; \
+    else \
+        make ci DEPLOY=1; \
     fi
 
 COPY src/staker src/staker
