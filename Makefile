@@ -1,12 +1,14 @@
 .PHONY: install lint format test build run kill deploy clean
 
-# Install dependencies (frozen)
+# Install dependencies (frozen lockfile)
+# Default: all groups (dev + build). DEPLOY=1: runtime only
 ci:
-	uv sync --frozen $(if $(DEPLOY),--no-dev --no-install-project,--no-install-project)
+	uv sync --frozen $(if $(DEPLOY),--no-dev,--group build) --no-install-project
 
-# Install dependencies
+# Install dependencies (update lockfile)
+# Default: all groups (dev + build). DEPLOY=1: runtime only
 install:
-	uv sync --all-groups --no-install-project
+	uv sync $(if $(DEPLOY),--no-dev,--group build) --no-install-project
 
 # Run linting
 lint:
@@ -29,6 +31,10 @@ cov:
 # Build Docker image
 build:
 	./scripts/build.sh
+
+# Generate QR codes
+qr:
+	uv run python scripts/qr.py
 
 # Run Docker container
 run:

@@ -39,7 +39,7 @@ jobs:
       run: make ci
     
     - name: Generate QR codes
-      run: uv run python scripts/qr.py
+      run: make qr
     
     - name: Commit if changed
       run: |

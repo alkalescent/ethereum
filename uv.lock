@@ -1088,12 +1088,14 @@ version = "0.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "boto3" },
-    { name = "geoip2" },
     { name = "requests" },
     { name = "rich" },
 ]
 
 [package.dev-dependencies]
+build = [
+    { name = "geoip2" },
+]
 dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -1106,12 +1108,12 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "boto3" },
-    { name = "geoip2" },
     { name = "requests" },
     { name = "rich" },
 ]
 
 [package.metadata.requires-dev]
+build = [{ name = "geoip2" }]
 dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
