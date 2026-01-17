@@ -8,7 +8,7 @@ ci:
 # Install dependencies (update lockfile)
 # Default: all groups (dev + build). DEPLOY=1: runtime only
 install:
-	uv sync $(if $(DEPLOY),,--group build) --no-install-project
+	uv sync $(if $(DEPLOY),--no-dev,--group build) --no-install-project
 
 # Run linting
 lint:
