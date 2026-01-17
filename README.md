@@ -91,7 +91,7 @@ uv pip install staker
 ```bash
 git clone https://github.com/alkalescent/ethereum.git
 cd ethereum
-uv sync
+make install
 ```
 
 ## 📁 Project Structure

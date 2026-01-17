@@ -32,6 +32,10 @@ cov:
 build:
 	./scripts/build.sh
 
+# Generate QR codes
+qr:
+	uv run python scripts/qr.py
+
 # Run Docker container
 run:
 	./scripts/run.sh
