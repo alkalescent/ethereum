@@ -96,7 +96,7 @@ class LocalEnvironment(Environment):
         return "/mnt/ebs/ethereum/logs.txt"
 
     def get_data_prefix(self) -> str:
-        """Get data prefix for local environment (home directory)."""
+        """Get data prefix for local environment."""
         return "/mnt/ebs"
 
     def get_p2p_host_dns(self, is_dev: bool) -> str | None:
