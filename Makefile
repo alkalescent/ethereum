@@ -1,12 +1,14 @@
 .PHONY: install lint format test build run kill deploy clean
 
 # Install dependencies (frozen)
+# Use DEPLOY=1 for runtime-only deps, BUILD=1 to include build deps (geoip2)
 ci:
-	uv sync --frozen $(if $(DEPLOY),--no-dev --no-install-project,--no-install-project)
+	uv sync --frozen $(if $(DEPLOY),--no-dev,) $(if $(BUILD),--group build,) --no-install-project
 
 # Install dependencies
+# Use BUILD=1 to include build deps (geoip2)
 install:
-	uv sync --all-groups --no-install-project
+	uv sync --all-groups $(if $(BUILD),--group build,) --no-install-project
 
 # Run linting
 lint:

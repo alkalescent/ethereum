@@ -24,7 +24,6 @@ dependencies = [
     "boto3",
     "requests",
     "rich",
-    "geoip2",
 ]
 
 [project.scripts]
@@ -35,6 +34,9 @@ Homepage = "https://github.com/alkalescent/ethereum"
 Repository = "https://github.com/alkalescent/ethereum"
 
 [dependency-groups]
+build = [
+    "geoip2",
+]
 dev = [
     "pytest",
     "pytest-cov",

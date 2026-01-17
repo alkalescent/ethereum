@@ -93,10 +93,15 @@ RUN mkdir -p "${MEV_DIR}" && \
     chmod +x mev-boost
 ENV PATH="${PATH}:${MEV_DIR}"
 
-# Run app
+# Setup VPN configs (if VPN=true)
+# Install build deps (geoip2) only when needed, then remove to keep image small
 WORKDIR "${ETH_DIR}"
 COPY vpn vpn
-RUN bash vpn/setup.sh
+RUN if [ "${VPN}" = "true" ]; then \
+        make ci BUILD=1 && \
+        bash vpn/setup.sh && \
+        make ci DEPLOY=1; \
+    fi
 
 COPY src/staker src/staker
 ENV PYTHONPATH="${ETH_DIR}/src"
