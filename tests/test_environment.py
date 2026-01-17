@@ -39,10 +39,8 @@ class TestLocalEnvironment:
         assert env.get_logs_path() == "/mnt/ebs/ethereum/logs.txt"
 
     def test_data_prefix_is_home(self):
-        import os
-
         env = LocalEnvironment()
-        assert env.get_data_prefix() == os.path.expanduser("~")
+        assert env.get_data_prefix() == "/mnt/ebs"
 
     def test_no_p2p_host_dns(self):
         env = LocalEnvironment()

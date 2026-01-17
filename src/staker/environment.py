@@ -4,7 +4,6 @@ This module provides abstractions for runtime-specific configurations,
 allowing the same code to run on AWS or locally with appropriate settings.
 """
 
-import os
 from abc import ABC, abstractmethod
 
 
@@ -98,7 +97,7 @@ class LocalEnvironment(Environment):
 
     def get_data_prefix(self) -> str:
         """Get data prefix for local environment (home directory)."""
-        return os.path.expanduser("~")
+        return "/mnt/ebs"
 
     def get_p2p_host_dns(self, is_dev: bool) -> str | None:
         """Local environment doesn't use P2P host DNS."""
