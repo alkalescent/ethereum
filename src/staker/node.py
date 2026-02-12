@@ -354,7 +354,7 @@ class Node:
         Returns:
             The formatted log line, or None if empty.
         """
-        decoded = line.decode("UTF-8").strip()
+        decoded = line.decode().strip()
         if decoded:
             log = f"{prefix} {decoded}"
             colored = colorize_log(log)
