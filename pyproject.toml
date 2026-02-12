@@ -33,6 +33,9 @@ staker = "staker.node:main"
 Homepage = "https://github.com/alkalescent/ethereum"
 Repository = "https://github.com/alkalescent/ethereum"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/staker"]
+
 [dependency-groups]
 build = [
     "geoip2",
