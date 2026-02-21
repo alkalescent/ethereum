@@ -771,5 +771,3 @@ class TestConsensusCheckpointFailure:
         mock_run.assert_called_once()
         call_args = mock_run.call_args[0][0]
         assert not any("weak-subjectivity-checkpoint" in arg for arg in call_args)
-
-
