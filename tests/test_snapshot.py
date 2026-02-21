@@ -107,6 +107,7 @@ class TestSnapshot:
             {"SnapshotId": "mid", "StartTime": datetime.now(UTC) - timedelta(days=5)},
         ]
         result = snapshot._find_most_recent(snaps)
+        assert result is not None
         assert result["SnapshotId"] == "new"
 
     def test_put_param(self, mock_boto3, mocker):
@@ -181,8 +182,9 @@ class TestSnapshot:
 
         result = snapshot._create([{"SnapshotId": "old"}])
 
+        assert result is not None
         assert result["SnapshotId"] == "new"
-        snapshot.force_create.assert_called_once()
+        snapshot.force_create.assert_called_once()  # type: ignore[union-attr]
 
     def test_create_skips_if_recent_exists(self, mock_boto3, mocker):
         """Test _create skips if a recent snapshot exists."""
@@ -254,8 +256,9 @@ class TestSnapshot:
 
         result = snapshot.backup()
 
+        assert result is not None
         assert result["SnapshotId"] == "new"
-        snapshot._purge.assert_called_once()
+        snapshot._purge.assert_called_once()  # type: ignore[union-attr]
 
     def test_terminate_calls_ec2(self, mock_boto3, mocker):
         """Test terminate calls EC2 terminate_instances."""

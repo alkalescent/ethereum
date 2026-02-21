@@ -10,6 +10,7 @@ All changes must pass these checks before merging (runs on ubuntu):
 
 ```bash
 make lint      # ruff check . && ruff format --check .
+make type      # ty check src tests
 make cov       # pytest with coverage (threshold enforced)
 ```
 
@@ -18,6 +19,7 @@ make cov       # pytest with coverage (threshold enforced)
 ```bash
 make ci DEV=1          # install deps (frozen lockfile, requires uv)
 make lint              # lint + format check
+make type              # type check (ty)
 make test              # unit tests only
 make cov               # unit tests with coverage
 make format            # auto-fix lint + format
@@ -35,6 +37,7 @@ make format            # auto-fix lint + format
 ## Key Conventions
 
 - **Package manager**: `uv` (all commands run via `uv run`)
+- **Type checker**: `ty` (astral, not mypy)
 - **Linter/Formatter**: `ruff`
 - **Test runner**: `pytest` with `pytest-xdist` (`-n auto`) and `pytest-cov`
 - **Python version**: 3.13

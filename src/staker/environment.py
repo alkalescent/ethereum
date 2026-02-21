@@ -74,7 +74,7 @@ class AWSEnvironment(Environment):
         """Get data prefix for AWS environment."""
         return "/mnt/ebs"
 
-    def get_p2p_host_dns(self, is_dev: bool) -> str:
+    def get_p2p_host_dns(self, is_dev: bool) -> str | None:
         """Get P2P host DNS for AWS environment."""
         # return f"aws.{'dev.' if is_dev else ''}eth.machine.one"
         return None
