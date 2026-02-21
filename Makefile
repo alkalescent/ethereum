@@ -1,4 +1,4 @@
-.PHONY: install lint format test build run kill deploy clean
+.PHONY: install lint type format test build run kill deploy clean
 
 # Install dependencies (frozen lockfile)
 # Default: all groups (dev + build). DEPLOY=1: runtime only
@@ -19,6 +19,10 @@ lint:
 format:
 	uv run ruff check --fix .
 	uv run ruff format .
+
+# Run type checking
+type:
+	uv run ty check src tests
 
 # Run tests
 test:

@@ -6,38 +6,39 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from staker.environment import Environment
 from staker.node import Node
 from staker.snapshot import NoOpSnapshotManager
 
 
-class MockEnvironment:
+class MockEnvironment(Environment):
     """Mock environment for testing."""
 
     def __init__(
         self,
-        logs_path="/tmp/test.log",
-        data_prefix="/tmp",
-        colored=True,
-        snapshots=False,
-    ):
+        logs_path: str = "/tmp/test.log",
+        data_prefix: str = "/tmp",
+        colored: bool = True,
+        snapshots: bool = False,
+    ) -> None:
         self._logs_path = logs_path
         self._data_prefix = data_prefix
         self._colored = colored
         self._snapshots = snapshots
 
-    def get_logs_path(self):
+    def get_logs_path(self) -> str:
         return self._logs_path
 
-    def get_data_prefix(self):
+    def get_data_prefix(self) -> str:
         return self._data_prefix
 
-    def get_p2p_host_dns(self, is_dev):
+    def get_p2p_host_dns(self, is_dev: bool) -> str | None:
         return None
 
-    def use_colored_logs(self):
+    def use_colored_logs(self) -> bool:
         return self._colored
 
-    def should_manage_snapshots(self):
+    def should_manage_snapshots(self) -> bool:
         return self._snapshots
 
 
@@ -705,7 +706,7 @@ class TestNodeStreamLogs:
         mock_proc = MagicMock()
         mock_proc.stdout = mock_stream
 
-        node._squeeze_logs([{"process": mock_proc}])
+        node._squeeze_logs([{"process": mock_proc, "prefix": "TEST"}])
 
         # Verify readline was called until empty
         assert mock_stream.readline.call_count == 3
