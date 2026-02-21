@@ -56,16 +56,16 @@ class PrefixedStream:
     """Wraps a stream to add a prefix, conforming to ProcessStream."""
 
     def __init__(self, stream: IO[bytes], prefix: str) -> None:
-        self.stream = stream
+        self._stream = stream
         self.prefix = prefix
 
     def readline(self) -> bytes:
         """Read a line from the wrapped stream."""
-        return self.stream.readline()
+        return self._stream.readline()
 
     def fileno(self) -> int:
         """Return the file descriptor, required by select.select()."""
-        return self.stream.fileno()
+        return self._stream.fileno()
 
 
 class ProcessMeta(TypedDict):
