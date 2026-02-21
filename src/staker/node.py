@@ -16,7 +16,7 @@ import tempfile
 from glob import glob
 from random import choice
 from time import sleep, time
-from typing import Protocol, TypedDict, runtime_checkable
+from typing import IO, Protocol, TypedDict, runtime_checkable
 
 from rich.console import Console
 
@@ -48,6 +48,24 @@ class ProcessStream(Protocol):
     prefix: str
 
     def readline(self) -> bytes: ...
+
+    def fileno(self) -> int: ...
+
+
+class PrefixedStream:
+    """Wraps a stream to add a prefix, conforming to ProcessStream."""
+
+    def __init__(self, stream: IO[bytes], prefix: str) -> None:
+        self._stream = stream
+        self.prefix = prefix
+
+    def readline(self) -> bytes:
+        """Read a line from the wrapped stream."""
+        return self._stream.readline()
+
+    def fileno(self) -> int:
+        """Return the file descriptor, required by select.select()."""
+        return self._stream.fileno()
 
 
 class ProcessMeta(TypedDict):
@@ -327,8 +345,7 @@ class Node:
         for meta in processes:
             stdout = meta["process"].stdout
             assert stdout is not None
-            stdout.prefix = meta["prefix"]  # type: ignore[union-attr]
-            streams.append(stdout)  # type: ignore[arg-type]
+            streams.append(PrefixedStream(stdout, meta["prefix"]))
 
         self.processes = processes
         self.streams = streams
