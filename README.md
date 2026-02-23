@@ -101,7 +101,7 @@ src/staker/
 ├── config.py       # Configuration constants and relay lists
 ├── environment.py  # Runtime abstraction (AWS vs local)
 ├── mev.py          # MEV relay selection and health checking
-├── node.py         # Main orchestrator - starts/monitors processes
+├── node.py         # Main orchestrator — starts/monitors processes
 ├── snapshot.py     # EBS snapshot management for persistence
 └── utils.py        # Utility functions (IP check, log coloring)
 ```
@@ -175,4 +175,4 @@ Relays are automatically tested on startup; unreliable ones are filtered out.
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License — see [LICENSE](LICENSE) for details.
