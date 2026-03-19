@@ -150,6 +150,13 @@ class Node:
             "--blob-storage-layout=by-epoch",
             "--http-mev-relay=http://localhost:18550",
             "--enable-backfill",
+            "--enable-proposer-preprocessing",
+            # experimental:
+            "--enable-state-diff",
+            "--enable-hashtree",
+            "--enable-experimental-attestation-pool",
+            "--enable-discovery-reboot",
+            "--enable-historical-state-representation",
         ]
 
         # Network-specific configuration
