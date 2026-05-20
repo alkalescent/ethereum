@@ -38,7 +38,8 @@ qr:
 
 # Run Docker container
 run:
-	./scripts/run.sh
+	VPN_USER="" VPN_PASS="" VPN=false scripts/run.sh
+	#./scripts/run.sh
 
 # Stop Docker container gracefully
 kill:
