@@ -152,7 +152,7 @@ class Node:
             "--enable-backfill",
             "--enable-proposer-preprocessing",
             # experimental:
-            "--enable-state-diff",
+            # "--enable-state-diff", # do NOT enable, db corrupted after restart
             "--enable-hashtree",
             "--enable-experimental-attestation-pool",
             "--enable-discovery-reboot",
