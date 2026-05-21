@@ -58,3 +58,7 @@ clean:
 	rm -rf .venv .pytest_cache __pycache__ .ruff_cache
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
+# Delete the ethereum db
+nuke:
+	sudo rm -rf ~/.ethereum/geth
+	sudo rm -rf ~/.eth2/beaconchaindata
