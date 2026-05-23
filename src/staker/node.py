@@ -156,7 +156,8 @@ class Node:
             "--enable-hashtree",
             "--enable-experimental-attestation-pool",
             "--enable-discovery-reboot",
-            "--enable-historical-state-representation",
+            # DEPRECATED
+            # "--enable-historical-state-representation",
         ]
 
         # Network-specific configuration

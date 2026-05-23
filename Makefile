@@ -60,5 +60,5 @@ clean:
 
 # Delete the ethereum db
 nuke:
-	sudo rm -rf ~/.ethereum/geth
+	sudo rm -rf ~/.ethereum/geth/chaindata
 	sudo rm -rf ~/.eth2/beaconchaindata
