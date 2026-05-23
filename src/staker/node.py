@@ -153,9 +153,11 @@ class Node:
             "--enable-proposer-preprocessing",
             # experimental:
             # "--enable-state-diff", # do NOT enable, db corrupted after restart
-            "--enable-hashtree",
-            "--enable-experimental-attestation-pool",
-            "--enable-discovery-reboot",
+            # disable these while debugging
+            # "--enable-hashtree",
+            # "--enable-experimental-attestation-pool",
+            # "--enable-discovery-reboot",
+            # disable these while debugging
             # DEPRECATED
             # "--enable-historical-state-representation",
         ]
