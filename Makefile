@@ -42,7 +42,8 @@ qr:
 
 # Run Docker container
 run:
-	./scripts/run.sh
+	VPN_USER="" VPN_PASS="" VPN=false scripts/run.sh
+	#./scripts/run.sh
 
 # Stop Docker container gracefully
 kill:
@@ -61,3 +62,7 @@ clean:
 	rm -rf .venv .pytest_cache __pycache__ .ruff_cache
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
+# Delete the ethereum db
+nuke:
+	sudo rm -rf ~/.ethereum/geth/chaindata
+	sudo rm -rf ~/.eth2/beaconchaindata
