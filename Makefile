@@ -66,3 +66,7 @@ clean:
 nuke:
 	sudo rm -rf ~/.ethereum/geth/chaindata
 	sudo rm -rf ~/.eth2/beaconchaindata
+
+# Prune branches
+prune:
+	git branch | grep -v "master" | xargs git branch -D
