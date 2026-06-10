@@ -54,3 +54,23 @@ class TestLocalEnvironment:
     def test_no_snapshot_management(self):
         env = LocalEnvironment()
         assert env.should_manage_snapshots() is False
+
+
+class TestGetEnvironment:
+    """Tests for the get_environment factory function."""
+
+    def test_returns_local_when_not_aws(self, mocker):
+        """Test factory returns LocalEnvironment when AWS is False."""
+        from staker.environment import LocalEnvironment, get_environment
+
+        mocker.patch("staker.config.AWS", False)
+        env = get_environment()
+        assert isinstance(env, LocalEnvironment)
+
+    def test_returns_aws_when_aws(self, mocker):
+        """Test factory returns AWSEnvironment when AWS is True."""
+        from staker.environment import AWSEnvironment, get_environment
+
+        mocker.patch("staker.config.AWS", True)
+        env = get_environment()
+        assert isinstance(env, AWSEnvironment)

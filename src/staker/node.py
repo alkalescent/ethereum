@@ -16,7 +16,7 @@ import tempfile
 from glob import glob
 from random import choice
 from time import sleep, time
-from typing import IO
+from typing import IO, Protocol, TypedDict, runtime_checkable
 
 from rich.console import Console
 
@@ -39,6 +39,40 @@ home_dir = os.path.expanduser("~")
 platform = sys.platform.lower()
 console = Console(highlight=False)
 print = console.print
+
+
+@runtime_checkable
+class ProcessStream(Protocol):
+    """Protocol for process stdout streams with a prefix attribute."""
+
+    prefix: str
+
+    def readline(self) -> bytes: ...
+
+    def fileno(self) -> int: ...
+
+
+class PrefixedStream:
+    """Wraps a stream to add a prefix, conforming to ProcessStream."""
+
+    def __init__(self, stream: IO[bytes], prefix: str) -> None:
+        self._stream = stream
+        self.prefix = prefix
+
+    def readline(self) -> bytes:
+        """Read a line from the wrapped stream."""
+        return self._stream.readline()
+
+    def fileno(self) -> int:
+        """Return the file descriptor, required by select.select()."""
+        return self._stream.fileno()
+
+
+class ProcessMeta(TypedDict):
+    """Metadata for a managed subprocess."""
+
+    process: subprocess.Popen[bytes]
+    prefix: str
 
 
 class Node:
@@ -86,8 +120,8 @@ class Node:
         self.ipc_path = self.geth_data_dir + ipc_postfix
         self.kill_in_progress = False
         self.terminating = False
-        self.processes: list[dict] = []
-        self.streams: list[IO[bytes]] = []
+        self.processes: list[ProcessMeta] = []
+        self.streams: list[ProcessStream] = []
         self.relays: list[str] = []
         self.most_recent: dict | None = None
         self.logs_file = env.get_logs_path()
@@ -95,7 +129,7 @@ class Node:
         with open(self.logs_file, "w") as _:
             pass
 
-    def _run_cmd(self, cmd: list[str]) -> subprocess.Popen:
+    def _run_cmd(self, cmd: list[str]) -> subprocess.Popen[bytes]:
         """Run a command and return the process handle.
 
         Args:
@@ -113,7 +147,7 @@ class Node:
         )
         return process
 
-    def _execution(self) -> subprocess.Popen:
+    def _execution(self) -> subprocess.Popen[bytes]:
         """Start the Geth execution client.
 
         Returns:
@@ -137,7 +171,7 @@ class Node:
         cmd = ["geth"] + args
         return self._run_cmd(cmd)
 
-    def _consensus(self) -> subprocess.Popen:
+    def _consensus(self) -> subprocess.Popen[bytes]:
         """Start the Prysm beacon chain.
 
         Returns:
@@ -190,7 +224,7 @@ class Node:
         cmd = ["beacon-chain"] + args
         return self._run_cmd(cmd)
 
-    def _validation(self) -> subprocess.Popen:
+    def _validation(self) -> subprocess.Popen[bytes]:
         """Start the Prysm validator client.
 
         Returns:
@@ -212,7 +246,7 @@ class Node:
         cmd = ["validator"] + args
         return self._run_cmd(cmd)
 
-    def _mev(self) -> subprocess.Popen:
+    def _mev(self) -> subprocess.Popen[bytes]:
         """Start the MEV-Boost relay.
 
         Returns:
@@ -228,7 +262,7 @@ class Node:
         cmd = ["mev-boost"] + args
         return self._run_cmd(cmd)
 
-    def _vpn(self) -> tuple[subprocess.Popen, str]:
+    def _vpn(self) -> tuple[subprocess.Popen[bytes], str]:
         """Start the OpenVPN client.
 
         Creates a secure temp file for credentials with restrictive permissions.
@@ -259,7 +293,7 @@ class Node:
         if path and os.path.exists(path):
             os.unlink(path)
 
-    def _wait_for_vpn(self) -> list[dict]:
+    def _wait_for_vpn(self) -> list[ProcessMeta]:
         """Wait for VPN connection with timeout and retry.
 
         Attempts to connect to VPN, retrying indefinitely if the connection
@@ -268,7 +302,7 @@ class Node:
         Returns:
             List containing the VPN process metadata.
         """
-        processes: list[dict] = []
+        processes: list[ProcessMeta] = []
         start_ip = get_public_ip()
         vpn_connected = False
         creds_path = None
@@ -296,7 +330,7 @@ class Node:
 
         return processes
 
-    def _start(self) -> tuple[list[dict], list[IO[bytes]]]:
+    def _start(self) -> tuple[list[ProcessMeta], list[ProcessStream]]:
         """Start all node processes.
 
         Optionally connects to VPN first, then starts execution, consensus,
@@ -305,7 +339,7 @@ class Node:
         Returns:
             Tuple of (processes list, stdout streams list).
         """
-        processes: list[dict] = []
+        processes: list[ProcessMeta] = []
 
         if VPN:
             processes = self._wait_for_vpn()
@@ -317,16 +351,17 @@ class Node:
             {"process": self._mev(), "prefix": "+++ MEV_BOOST +++"},
         ]
 
-        streams: list[IO[bytes]] = []
+        streams: list[ProcessStream] = []
         for meta in processes:
-            meta["process"].stdout.prefix = meta["prefix"]
-            streams.append(meta["process"].stdout)
+            stdout = meta["process"].stdout
+            assert stdout is not None
+            streams.append(PrefixedStream(stdout, meta["prefix"]))
 
         self.processes = processes
         self.streams = streams
         return processes, streams
 
-    def _signal_processes(self, sig: signal.Signals, prefix: str, hard: bool = True) -> None:
+    def _signal_processes(self, sig: signal.Signals, prefix: str, *, hard: bool = True) -> None:
         """Send a signal to all managed processes.
 
         Args:
@@ -364,7 +399,7 @@ class Node:
         Returns:
             The formatted log line, or None if empty.
         """
-        decoded = line.decode("UTF-8").strip()
+        decoded = line.decode().strip()
         if decoded:
             log = f"{prefix} {decoded}"
             colored = colorize_log(log)
@@ -374,7 +409,7 @@ class Node:
             return log
         return None
 
-    def _stream_logs(self, rstreams: list[IO[bytes]]) -> list[str | None]:
+    def _stream_logs(self, rstreams: list[ProcessStream]) -> list[str | None]:
         """Read and print available log lines from streams.
 
         Args:
@@ -385,7 +420,7 @@ class Node:
         """
         return [self._print_line(stream.prefix, stream.readline()) for stream in rstreams]
 
-    def _squeeze_logs(self, processes: list[dict]) -> None:
+    def _squeeze_logs(self, processes: list[ProcessMeta]) -> None:
         """Drain remaining output from all processes.
 
         Args:
@@ -393,8 +428,9 @@ class Node:
         """
         for meta in processes:
             stream = meta["process"].stdout
+            assert stream is not None
             for line in iter(stream.readline, b""):
-                self._print_line(stream.prefix, line)
+                self._print_line(meta["prefix"], line)
 
     def _interrupt_on_error(self, logs: list[str | None]) -> bool:
         """Check for known error conditions and interrupt if found.
@@ -411,7 +447,7 @@ class Node:
                 return True
         return False
 
-    def _poll_processes(self, processes: list[dict]):
+    def _poll_processes(self, processes: list[ProcessMeta]):
         """Generate poll results for all processes.
 
         Args:
@@ -422,7 +458,7 @@ class Node:
         """
         return (meta["process"].poll() is not None for meta in processes)
 
-    def _all_processes_are_dead(self, processes: list[dict]) -> bool:
+    def _all_processes_are_dead(self, processes: list[ProcessMeta]) -> bool:
         """Check if all processes have terminated.
 
         Args:
@@ -433,7 +469,7 @@ class Node:
         """
         return all(self._poll_processes(processes))
 
-    def _any_process_is_dead(self, processes: list[dict]) -> bool:
+    def _any_process_is_dead(self, processes: list[ProcessMeta]) -> bool:
         """Check if any process has terminated.
 
         Args:
@@ -444,7 +480,7 @@ class Node:
         """
         return any(self._poll_processes(processes))
 
-    def _handle_gracefully(self, processes: list[dict], hard: bool) -> None:
+    def _handle_gracefully(self, processes: list[ProcessMeta], *, hard: bool) -> None:
         """Gracefully stop all processes with escalating signals.
 
         Sends SIGINT, waits for KILL_TIME, escalates to SIGTERM,

@@ -47,6 +47,7 @@ dev = [
     "pytest-xdist",
     "qrcode[pil]",
     "ruff",
+    "ty>=0.0.18",
 ]
 
 [tool.ruff]
@@ -73,3 +74,7 @@ omit = ["tests/*", "scripts/*", "vpn/*"]
 [tool.coverage.report]
 fail_under = 95
 show_missing = true
+
+[tool.ty]
+[tool.ty.environment]
+python-version = "3.13"

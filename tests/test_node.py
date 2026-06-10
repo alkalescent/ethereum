@@ -6,38 +6,39 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from staker.environment import Environment
 from staker.node import Node
 from staker.snapshot import NoOpSnapshotManager
 
 
-class MockEnvironment:
+class MockEnvironment(Environment):
     """Mock environment for testing."""
 
     def __init__(
         self,
-        logs_path="/tmp/test.log",
-        data_prefix="/tmp",
-        colored=True,
-        snapshots=False,
-    ):
+        logs_path: str = "/tmp/test.log",
+        data_prefix: str = "/tmp",
+        colored: bool = True,
+        snapshots: bool = False,
+    ) -> None:
         self._logs_path = logs_path
         self._data_prefix = data_prefix
         self._colored = colored
         self._snapshots = snapshots
 
-    def get_logs_path(self):
+    def get_logs_path(self) -> str:
         return self._logs_path
 
-    def get_data_prefix(self):
+    def get_data_prefix(self) -> str:
         return self._data_prefix
 
-    def get_p2p_host_dns(self, is_dev):
+    def get_p2p_host_dns(self, is_dev: bool) -> str | None:
         return None
 
-    def use_colored_logs(self):
+    def use_colored_logs(self) -> bool:
         return self._colored
 
-    def should_manage_snapshots(self):
+    def should_manage_snapshots(self) -> bool:
         return self._snapshots
 
 
@@ -705,7 +706,68 @@ class TestNodeStreamLogs:
         mock_proc = MagicMock()
         mock_proc.stdout = mock_stream
 
-        node._squeeze_logs([{"process": mock_proc}])
+        node._squeeze_logs([{"process": mock_proc, "prefix": "TEST"}])
 
         # Verify readline was called until empty
         assert mock_stream.readline.call_count == 3
+
+
+class TestPrefixedStream:
+    """Tests for the PrefixedStream wrapper."""
+
+    def test_readline_delegates_to_inner_stream(self):
+        """Test readline() delegates to the wrapped stream."""
+        from staker.node import PrefixedStream
+
+        inner = MagicMock()
+        inner.readline.return_value = b"hello\n"
+        stream = PrefixedStream(inner, "PREFIX")
+
+        result = stream.readline()
+
+        assert result == b"hello\n"
+        inner.readline.assert_called_once()
+
+    def test_fileno_delegates_to_inner_stream(self):
+        """Test fileno() delegates to the wrapped stream."""
+        from staker.node import PrefixedStream
+
+        inner = MagicMock()
+        inner.fileno.return_value = 5
+        stream = PrefixedStream(inner, "PREFIX")
+
+        result = stream.fileno()
+
+        assert result == 5
+        inner.fileno.assert_called_once()
+
+    def test_prefix_attribute(self):
+        """Test prefix is stored correctly."""
+        from staker.node import PrefixedStream
+
+        inner = MagicMock()
+        stream = PrefixedStream(inner, "+++ GETH +++")
+
+        assert stream.prefix == "+++ GETH +++"
+
+
+class TestConsensusCheckpointFailure:
+    """Tests for consensus checkpoint failure handling."""
+
+    @pytest.fixture()
+    def node(self, tmp_path):
+        logs_file = tmp_path / "logs.txt"
+        env = MockEnvironment(logs_path=str(logs_file))
+        return Node(env=env, snapshot=NoOpSnapshotManager())
+
+    def test_consensus_continues_when_checkpoint_fails(self, node, mocker):
+        """Test consensus starts even when weak subjectivity checkpoint fails."""
+        mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
+        mocker.patch("staker.node.get_checkpoint", side_effect=Exception("network error"))
+
+        node._consensus()
+
+        # Should still have called _run_cmd (just without the checkpoint arg)
+        mock_run.assert_called_once()
+        call_args = mock_run.call_args[0][0]
+        assert not any("weak-subjectivity-checkpoint" in arg for arg in call_args)

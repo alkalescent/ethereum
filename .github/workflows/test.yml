@@ -27,6 +27,9 @@ jobs:
     - name: Lint
       run: make lint
     
+    - name: Type check
+      run: make type
+    
     - name: Run tests with coverage
       env:
         DEPLOY_ENV: dev
