@@ -185,6 +185,7 @@ class Node:
             "--http-mev-relay=http://localhost:18550",
             "--enable-backfill",
             "--enable-proposer-preprocessing",
+            "--postpone-shutdown-for-proposals",
             # experimental:
             # "--enable-state-diff", # do NOT enable, db corrupted after restart
             # disable these while debugging
