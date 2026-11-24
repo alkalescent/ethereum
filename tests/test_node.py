@@ -164,6 +164,10 @@ class TestNodeLogging:
         result = node._print_line("PREFIX", b"   \n")
         assert result is None
 
+    def test_print_line_replaces_invalid_utf8(self, node):
+        result = node._print_line("PREFIX", b"caf\xe9 latin-1\n")
+        assert result == "PREFIX caf\ufffd latin-1"
+
 
 class TestNodeProcessState:
     """Tests for Node process state checking."""
