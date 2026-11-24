@@ -150,18 +150,52 @@ Resources:
               - Effect: Allow
                 Action: 
                   - 'ec2:CreateSnapshot'
-                  - 'ec2:CreateTags'
-                  - 'ec2:DeleteSnapshot'
                   - 'ec2:Describe*'
                   - 'ec2:GetLaunchTemplateData'
-                  - 'ec2:TerminateInstances'
                   - 'ecs:ListContainerInstances'
                   - 'ecs:DescribeContainerInstances'
-                  - 'ec2:CreateLaunchTemplateVersion'
                   - 'autoscaling:DescribeAutoScalingGroups'
-                  - 'ec2:RunInstances'
-                  - 'iam:PassRole'
                 Resource: '*'
+              # Tags on new snapshots, and on launches checked by the Auto Scaling update
+              - Effect: Allow
+                Action:
+                  - 'ec2:CreateTags'
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    'ec2:CreateAction':
+                      - CreateSnapshot
+                      - RunInstances
+              - Effect: Allow
+                Action:
+                  - 'ec2:DeleteSnapshot'
+                Resource: !Sub 'arn:aws:ec2:${AWS::Region}::snapshot/*'
+                Condition:
+                  StringEquals:
+                    'aws:ResourceTag/type': !Sub '${DeployEnv}_staking_snapshot'
+              - Effect: Allow
+                Action:
+                  - 'ec2:TerminateInstances'
+                Resource: '*'
+                Condition:
+                  ArnEquals:
+                    'ec2:InstanceProfile': !GetAtt InstanceProfile.Arn
+              - Effect: Allow
+                Action:
+                  - 'ec2:CreateLaunchTemplateVersion'
+                Resource: !Sub 'arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:launch-template/${LaunchTemplate}'
+              # The Auto Scaling update checks that this role can launch from the template
+              - Effect: Allow
+                Action:
+                  - 'ec2:RunInstances'
+                Resource: '*'
+                Condition:
+                  ArnLike:
+                    'ec2:LaunchTemplate': !Sub 'arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:launch-template/${LaunchTemplate}'
+              - Effect: Allow
+                Action:
+                  - 'iam:PassRole'
+                Resource: !GetAtt InstanceRole.Arn
               - Effect: Allow
                 Action:
                   - 'autoscaling:UpdateAutoScalingGroup'
