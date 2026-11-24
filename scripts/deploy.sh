@@ -61,7 +61,7 @@ deploy_stack() {
         echo "🔍 Dry run mode - creating changeset without executing"
         aws cloudformation deploy "${args[@]}" --no-execute-changeset
         echo "✅ Changeset created. Review in AWS Console before executing."
-        return 1  # Signal dry run to skip ECS update
+        return
     fi
 
     aws cloudformation deploy "${args[@]}"
@@ -81,6 +81,9 @@ update_ecs_service() {
 
 SNAPSHOT_ID=$(get_snapshot_id)
 
-if deploy_stack; then
+# Called outside a condition so that set -e stops on a failed deploy
+deploy_stack
+
+if [[ "${DRY_RUN}" != "true" ]]; then
     update_ecs_service
 fi
