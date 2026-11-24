@@ -523,10 +523,12 @@ class TestNodeClientProcesses:
 
     def test_consensus_includes_checkpoint_sync(self, node, mocker):
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
+        mocker.patch("staker.node.get_checkpoint", return_value="0xabc:123")
         node._consensus()
 
         call_args = mock_run.call_args[0][0]
         assert any("checkpoint-sync-url" in arg for arg in call_args)
+        assert "--weak-subjectivity-checkpoint=0xabc:123" in call_args
 
     def test_validation_includes_enable_builder(self, node, mocker):
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
@@ -577,6 +579,7 @@ class TestNodeProductionMode:
     def test_consensus_includes_mainnet(self, node, mocker):
         """Test consensus uses --mainnet in production."""
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
+        mocker.patch("staker.node.get_checkpoint", return_value="0xabc:123")
         node._consensus()
 
         call_args = mock_run.call_args[0][0]
@@ -605,6 +608,7 @@ class TestNodeProductionMode:
     def test_consensus_includes_p2p_host_dns(self, node, mocker):
         """Test consensus includes p2p-host-dns when available."""
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
+        mocker.patch("staker.node.get_checkpoint", return_value="0xabc:123")
 
         # Mock environment to return a p2p host
         mocker.patch.object(node.env, "get_p2p_host_dns", return_value="node.example.com")
