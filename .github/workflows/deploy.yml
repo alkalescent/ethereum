@@ -47,10 +47,12 @@ jobs:
         id: versions
         run: |
           source versions.env
-          echo "GETH_VERSION=${GETH_VERSION}" >> $GITHUB_OUTPUT
-          echo "GETH_COMMIT=${GETH_COMMIT}" >> $GITHUB_OUTPUT
-          echo "PRYSM_VERSION=${PRYSM_VERSION}" >> $GITHUB_OUTPUT
-          echo "MEVBOOST_VERSION=${MEVBOOST_VERSION}" >> $GITHUB_OUTPUT
+          {
+            echo "GETH_VERSION=${GETH_VERSION}"
+            echo "GETH_COMMIT=${GETH_COMMIT}"
+            echo "PRYSM_VERSION=${PRYSM_VERSION}"
+            echo "MEVBOOST_VERSION=${MEVBOOST_VERSION}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2

@@ -103,7 +103,7 @@ jobs:
         sed -i "s/^version = .*/version = \"$PYPI_VERSION\"/" pyproject.toml
         echo "Tag version: $NEW_TAG"
         echo "PyPI version: $PYPI_VERSION"
-        echo "pypi_version=$PYPI_VERSION" >> $GITHUB_OUTPUT
+        echo "pypi_version=$PYPI_VERSION" >> "$GITHUB_OUTPUT"
         grep "^version" pyproject.toml
       env:
         NEW_TAG: ${{ steps.version.outputs.new_tag }}
