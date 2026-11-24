@@ -258,16 +258,35 @@ class Snapshot(SnapshotManager):
                 launch_template = self.ec2.get_launch_template_data(InstanceId=self.instance_id)
                 for device in launch_template["LaunchTemplateData"]["BlockDeviceMappings"]:
                     if device["DeviceName"] == "/dev/sdx":
-                        return device["Ebs"]["SnapshotId"]
+                        return device["Ebs"].get("SnapshotId")
         except ClientError as e:
             logging.exception(e)
         return None
+
+    def _is_behind(self, snapshot: dict[str, Any]) -> bool:
+        """Check whether this instance should be replaced by one restored from a snapshot.
+
+        The volume is current when the snapshot was taken from it or when the
+        volume was restored from it. With no snapshot there is nothing to restore.
+
+        Args:
+            snapshot: The most recent snapshot, or an empty dict.
+
+        Returns:
+            True if the snapshot came from another volume and this volume was
+            not restored from it.
+        """
+        snapshot_id = snapshot.get("SnapshotId")
+        if not snapshot_id or snapshot.get("VolumeId") == self.volume_id:
+            return False
+        return self._get_curr_snapshot_id() != snapshot_id
 
     def update(self) -> bool:
         """Update launch template with latest snapshot.
 
         Returns:
-            True if the instance needs to be refreshed.
+            True if the instance runs an older launch template version and its
+            volume is behind the latest snapshot.
         """
         curr_snapshots = self._get_snapshots()
         most_recent = self._find_most_recent(curr_snapshots) or {}
@@ -333,7 +352,7 @@ class Snapshot(SnapshotManager):
                 LaunchTemplate={"LaunchTemplateName": template_name, "Version": "$Latest"},
             )
 
-        return update_asg or refresh_instance
+        return (update_asg or refresh_instance) and self._is_behind(most_recent)
 
     def instance_is_draining(self) -> bool:
         """Check if the ECS container instance is draining."""
