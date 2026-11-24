@@ -531,6 +531,13 @@ class TestNodeClientProcesses:
         call_args = mock_run.call_args[0][0]
         assert "--enable-builder" in call_args
 
+    def test_validation_enables_doppelganger_check(self, node, mocker):
+        mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
+        node._validation()
+
+        call_args = mock_run.call_args[0][0]
+        assert "--enable-doppelganger" in call_args
+
     def test_mev_includes_relays(self, node, mocker):
         node.relays = ["http://relay1", "http://relay2"]
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())

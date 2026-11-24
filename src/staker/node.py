@@ -233,6 +233,7 @@ class Node:
         args = [
             "--accept-terms-of-use",
             "--enable-builder",
+            "--enable-doppelganger",
             f"--wallet-dir={self.prysm_wallet_dir}",
             f"--suggested-fee-recipient={ETH_ADDR}",
             f"--wallet-password-file={self.prysm_wallet_dir}/password.txt",

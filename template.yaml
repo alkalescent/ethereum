@@ -19,6 +19,8 @@ Parameters:
   DesiredCapacity:
     Type: "Number"
     Default: 0
+    # A second instance would sign with the same validator keys
+    MaxValue: 1
   Arch:
     Type: "String"
     Default: arm64
@@ -304,7 +306,7 @@ Resources:
           DeploymentCircuitBreaker:
             Enable: false
             Rollback: true
-          MaximumPercent: 200
+          MaximumPercent: 100
           MinimumHealthyPercent: 0
         DeploymentController: 
           Type: ECS
@@ -334,7 +336,7 @@ Resources:
       LaunchTemplate: 
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
-      MaxSize: 2
+      MaxSize: 1
       MetricsCollection: 
         - Granularity: 1Minute
       MinSize: 0
