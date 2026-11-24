@@ -156,7 +156,7 @@ class Node:
         args = [
             "--http",
             "--http.api",
-            "eth,net,engine,admin",
+            "eth,net",
             "--state.scheme=path",
         ]
 

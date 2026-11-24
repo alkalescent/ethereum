@@ -510,6 +510,13 @@ class TestNodeClientProcesses:
         call_args = mock_run.call_args[0][0]
         assert any("--datadir=" in arg for arg in call_args)
 
+    def test_execution_serves_only_eth_and_net_over_http(self, node, mocker):
+        mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
+        node._execution()
+
+        call_args = mock_run.call_args[0][0]
+        assert call_args[call_args.index("--http.api") + 1] == "eth,net"
+
     def test_consensus_includes_checkpoint_sync(self, node, mocker):
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
         node._consensus()
