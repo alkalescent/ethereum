@@ -303,9 +303,6 @@ Resources:
       Properties:
         Cluster: !Sub "${DeployEnv}-staking-cluster"
         DeploymentConfiguration: 
-          DeploymentCircuitBreaker:
-            Enable: false
-            Rollback: true
           MaximumPercent: 100
           MinimumHealthyPercent: 0
         DeploymentController: 
