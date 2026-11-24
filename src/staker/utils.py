@@ -1,5 +1,7 @@
 """Utility functions for the Ethereum staking node."""
 
+from time import sleep
+
 import requests
 
 from staker.config import LOG_STYLES
@@ -11,8 +13,8 @@ IP_CHECK_DOMAINS: list[str] = ["4.ident.me", "4.tnedi.me"]
 def get_public_ip() -> str:
     """Get the current public IP address with failover between domains.
 
-    Tries each domain in IP_CHECK_DOMAINS, rotating on failure until
-    one succeeds. Logs failures to console.
+    Tries each domain in IP_CHECK_DOMAINS, rotating on failure and waiting
+    a second between attempts, until one succeeds. Logs failures to console.
 
     Returns:
         The public IP address as a string.
@@ -25,6 +27,7 @@ def get_public_ip() -> str:
         except requests.exceptions.RequestException as e:
             print(f"Failed to reach {domain}: {e}, trying alternate...")
             domain_idx = (domain_idx + 1) % len(IP_CHECK_DOMAINS)
+            sleep(1)
 
 
 def colorize_log(text: str) -> str:

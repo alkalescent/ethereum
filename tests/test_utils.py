@@ -68,12 +68,14 @@ class TestGetPublicIp:
             ],
         )
         mock_print = mocker.patch("builtins.print")
+        mock_sleep = mocker.patch("staker.utils.sleep")
 
         result = get_public_ip()
 
         assert result == "5.6.7.8"
         mock_print.assert_called_once()
         assert "trying alternate" in str(mock_print.call_args)
+        mock_sleep.assert_called_once_with(1)
 
     def test_alternates_domains(self, mocker):
         # Both domains fail once each, then second succeeds
@@ -89,6 +91,7 @@ class TestGetPublicIp:
             ],
         )
         mocker.patch("builtins.print")
+        mocker.patch("staker.utils.sleep")
 
         result = get_public_ip()
 
