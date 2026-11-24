@@ -29,7 +29,7 @@ make format            # auto-fix lint + format
 
 - `src/staker/` — core CLI module (node orchestration, config, environment, snapshots, MEV-boost, utils)
 - `tests/` — pytest unit tests
-- `scripts/` — utility scripts (build, deploy, QR codes, DDNS, update)
+- `scripts/` — utility scripts (build, deploy, QR codes, update)
 - `config/` — configuration files
 - `pyproject.toml` — project config, dependencies, and tool settings
 - `Makefile` — build/test/lint/deploy commands

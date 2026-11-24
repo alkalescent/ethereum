@@ -110,14 +110,3 @@ class LocalEnvironment(Environment):
     def should_manage_snapshots(self) -> bool:
         """Local environment doesn't manage snapshots."""
         return False
-
-
-def get_environment() -> Environment:
-    """Factory function to get the appropriate environment.
-
-    Returns:
-        AWSEnvironment if AWS env var is set, otherwise LocalEnvironment.
-    """
-    from staker.config import AWS
-
-    return AWSEnvironment() if AWS else LocalEnvironment()
