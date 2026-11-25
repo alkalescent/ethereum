@@ -177,14 +177,16 @@ class TestSnapshot:
         """Test _create creates snapshot when all existing are old."""
         snapshot = Snapshot()
         mocker.patch.object(snapshot, "is_older_than", return_value=True)
-        mocker.patch.object(snapshot, "force_create", return_value={"SnapshotId": "new"})
+        force_create = mocker.patch.object(
+            snapshot, "force_create", return_value={"SnapshotId": "new"}
+        )
         mocker.patch.object(snapshot, "_put_param")
 
         result = snapshot._create([{"SnapshotId": "old"}])
 
         assert result is not None
         assert result["SnapshotId"] == "new"
-        snapshot.force_create.assert_called_once()  # type: ignore[union-attr]
+        force_create.assert_called_once()
 
     def test_create_skips_if_recent_exists(self, mock_boto3, mocker):
         """Test _create skips if a recent snapshot exists."""
@@ -331,13 +333,13 @@ class TestSnapshot:
         mocker.patch.object(snapshot, "_get_snapshots", return_value=[])
         mocker.patch.object(snapshot, "_get_exceptions", return_value=set())
         mocker.patch.object(snapshot, "_create", return_value={"SnapshotId": "new"})
-        mocker.patch.object(snapshot, "_purge")
+        purge = mocker.patch.object(snapshot, "_purge")
 
         result = snapshot.backup()
 
         assert result is not None
         assert result["SnapshotId"] == "new"
-        snapshot._purge.assert_called_once()  # type: ignore[union-attr]
+        purge.assert_called_once()
 
     def test_terminate_calls_ec2(self, mock_boto3, mocker):
         """Test terminate calls EC2 terminate_instances."""
