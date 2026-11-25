@@ -39,6 +39,24 @@ class TestColorizeLog:
         result = colorize_log("level=error msg=test")
         assert "[bright_red]level=error[/bright_red]" in result
 
+    def test_colorizes_openvpn(self):
+        result = colorize_log("OPENVPN connected")
+        assert result == "[orange1]OPENVPN[/orange1] connected"
+
+    def test_colorizes_whole_warning(self):
+        result = colorize_log("WARNING disk low")
+        assert result == "[bright_yellow]WARNING[/bright_yellow] disk low"
+
+    def test_colorizes_warn(self):
+        result = colorize_log("WARN [11-25|12:00:00.000] Dropped peer")
+        assert result == "[bright_yellow]WARN[/bright_yellow] [11-25|12:00:00.000] Dropped peer"
+
+    def test_colorizes_each_keyword(self):
+        result = colorize_log("EXECUTION INFO level=info")
+        assert result == (
+            "[bold magenta]EXECUTION[/bold magenta] [green]INFO[/green] [green]level=info[/green]"
+        )
+
     def test_no_color_for_unknown(self):
         result = colorize_log("some random text")
         assert result == "some random text"

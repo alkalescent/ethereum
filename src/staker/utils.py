@@ -1,5 +1,6 @@
 """Utility functions for the Ethereum staking node."""
 
+import re
 from time import sleep
 
 import requests
@@ -8,6 +9,12 @@ from staker.config import LOG_STYLES
 
 # IP check domains with failover
 IP_CHECK_DOMAINS: list[str] = ["4.ident.me", "4.tnedi.me"]
+
+# Log keywords, longest first, so a keyword inside a longer one (WARN in
+# WARNING) never matches on its own
+LOG_PATTERN: re.Pattern[str] = re.compile(
+    "|".join(re.escape(key) for key in sorted(LOG_STYLES, key=len, reverse=True))
+)
 
 
 def get_public_ip() -> str:
@@ -33,7 +40,8 @@ def get_public_ip() -> str:
 def colorize_log(text: str) -> str:
     """Apply Rich console color styles to log text.
 
-    Replaces keywords in the text with Rich markup for colored output.
+    Wraps each keyword in the text with Rich markup for colored output, in
+    one pass, so a keyword is never marked twice or split by a shorter one.
 
     Args:
         text: The log line to colorize.
@@ -41,9 +49,13 @@ def colorize_log(text: str) -> str:
     Returns:
         The text with Rich color markup applied.
     """
-    for key, style in LOG_STYLES.items():
-        text = text.replace(key, f"[{style}]{key}[/{style}]")
-    return text
+
+    def mark(match: re.Match[str]) -> str:
+        key = match.group(0)
+        style = LOG_STYLES[key]
+        return f"[{style}]{key}[/{style}]"
+
+    return LOG_PATTERN.sub(mark, text)
 
 
 def get_checkpoint_url(network: str) -> str:

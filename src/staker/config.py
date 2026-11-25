@@ -14,6 +14,9 @@ DEV: bool = DEPLOY_ENV.lower() == "dev"
 # Process management
 KILL_TIME: int = 30
 VPN_TIMEOUT: int = 10
+# Seconds before restarting a validator whose startup checks failed: four epochs of
+# 32 slots of 12 s, one more than the three epochs Prysm's doppelganger check reads.
+VALIDATOR_RESTART_WAIT: int = 4 * 32 * 12
 
 
 def get_env_bool(var_name: str) -> bool:
@@ -40,7 +43,7 @@ MAX_SNAPSHOT_DAYS: int = MAX_SNAPSHOTS * SNAPSHOT_DAYS
 
 # Log coloring styles for Rich console
 LOG_STYLES: dict[str, str] = {
-    "OPENVPN": "orange",
+    "OPENVPN": "orange1",
     "EXECUTION": "bold magenta",
     "CONSENSUS": "bold cyan",
     "VALIDATION": "bold yellow",

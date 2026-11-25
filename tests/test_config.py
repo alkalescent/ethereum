@@ -2,6 +2,8 @@
 
 import os
 
+from rich.style import Style
+
 from staker.config import (
     DEV,
     DOCKER,
@@ -53,6 +55,11 @@ class TestConstants:
         ]
         for key in expected_keys:
             assert key in LOG_STYLES
+
+    def test_log_styles_parse(self):
+        # Rich prints a style it cannot parse as plain text, with no error
+        for style in LOG_STYLES.values():
+            Style.parse(style)
 
     def test_relays_mainnet_not_empty(self):
         assert len(RELAYS_MAINNET) > 0

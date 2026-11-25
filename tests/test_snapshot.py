@@ -177,14 +177,16 @@ class TestSnapshot:
         """Test _create creates snapshot when all existing are old."""
         snapshot = Snapshot()
         mocker.patch.object(snapshot, "is_older_than", return_value=True)
-        mocker.patch.object(snapshot, "force_create", return_value={"SnapshotId": "new"})
+        force_create = mocker.patch.object(
+            snapshot, "force_create", return_value={"SnapshotId": "new"}
+        )
         mocker.patch.object(snapshot, "_put_param")
 
         result = snapshot._create([{"SnapshotId": "old"}])
 
         assert result is not None
         assert result["SnapshotId"] == "new"
-        snapshot.force_create.assert_called_once()  # type: ignore[union-attr]
+        force_create.assert_called_once()
 
     def test_create_skips_if_recent_exists(self, mock_boto3, mocker):
         """Test _create skips if a recent snapshot exists."""
@@ -331,13 +333,13 @@ class TestSnapshot:
         mocker.patch.object(snapshot, "_get_snapshots", return_value=[])
         mocker.patch.object(snapshot, "_get_exceptions", return_value=set())
         mocker.patch.object(snapshot, "_create", return_value={"SnapshotId": "new"})
-        mocker.patch.object(snapshot, "_purge")
+        purge = mocker.patch.object(snapshot, "_purge")
 
         result = snapshot.backup()
 
         assert result is not None
         assert result["SnapshotId"] == "new"
-        snapshot._purge.assert_called_once()  # type: ignore[union-attr]
+        purge.assert_called_once()
 
     def test_terminate_calls_ec2(self, mock_boto3, mocker):
         """Test terminate calls EC2 terminate_instances."""
@@ -406,15 +408,41 @@ class TestSnapshot:
 
         assert result is None
 
-    def test_get_curr_snapshot_id_returns_none_on_error(self, mock_boto3, mocker):
-        """Test _get_curr_snapshot_id returns None on error."""
+    def test_get_curr_snapshot_id_raises_on_error(self, mock_boto3, mocker):
+        """Test _get_curr_snapshot_id raises a failed read, unlike a volume without a snapshot."""
         snapshot = Snapshot()
 
         mocker.patch("staker.snapshot.AWS", True)
-        snapshot.ec2.get_launch_template_data.side_effect = ClientError(
+        snapshot.ec2.get_launch_template_data.side_effect = self._template_read_error()
+
+        with pytest.raises(ClientError):
+            snapshot._get_curr_snapshot_id()
+
+    def test_get_exceptions_keeps_param_when_template_read_fails(self, mock_boto3, mocker):
+        """Test a failed launch template read still protects the parameter's snapshot."""
+        snapshot = Snapshot()
+        mocker.patch("staker.snapshot.AWS", True)
+        mocker.patch.object(snapshot, "_get_param", return_value="snap-param")
+        snapshot.ec2.get_launch_template_data.side_effect = self._template_read_error()
+
+        assert snapshot._get_exceptions() == {"snap-param"}
+
+    def test_update_keeps_instance_when_template_read_fails(self, mock_boto3, mocker):
+        """Test an outdated instance is kept when its launch template data can't be read."""
+        snapshot = Snapshot()
+        latest = {"SnapshotId": "snap-new", "VolumeId": "vol-other", "StartTime": datetime.now(UTC)}
+        self._stub_outdated_instance(snapshot, mocker, [latest])
+        mocker.patch("staker.snapshot.AWS", True)
+        snapshot.ec2.get_launch_template_data.side_effect = self._template_read_error()
+
+        result = snapshot.update()
+
+        assert result is False
+        snapshot.ec2.get_launch_template_data.assert_called_once_with(InstanceId="i-running")
+
+    @staticmethod
+    def _template_read_error() -> ClientError:
+        """A ClientError from GetLaunchTemplateData."""
+        return ClientError(
             {"Error": {"Code": "InvalidInstance", "Message": "API error"}}, "GetLaunchTemplateData"
         )
-
-        result = snapshot._get_curr_snapshot_id()
-
-        assert result is None
