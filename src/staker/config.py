@@ -43,7 +43,7 @@ MAX_SNAPSHOT_DAYS: int = MAX_SNAPSHOTS * SNAPSHOT_DAYS
 
 # Log coloring styles for Rich console
 LOG_STYLES: dict[str, str] = {
-    "OPENVPN": "orange",
+    "OPENVPN": "orange1",
     "EXECUTION": "bold magenta",
     "CONSENSUS": "bold cyan",
     "VALIDATION": "bold yellow",
