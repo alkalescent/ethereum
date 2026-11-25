@@ -28,7 +28,7 @@ ENV PRYSM_DIR="${ETH_DIR}${PRYSM_DIR_BASE}"
 RUN apt-get update && \
     apt-get install -y python3 git curl bash make && \
     rm -rf /var/lib/apt/lists/* && \
-    curl -LsSf https://astral.sh/uv/install.sh | sh
+    curl -LsSf https://astral.sh/uv/0.13.7/install.sh | sh
 
 ENV PATH="${HOME}/.local/bin:${PATH}"
 
@@ -63,7 +63,7 @@ ENV PLATFORM_ARCH="linux-${ARCH}"
 ENV GETH_ARCHIVE="geth-${PLATFORM_ARCH}-${GETH_VERSION}-${GETH_COMMIT}"
 RUN mkdir -p "${EXEC_DIR}" && \
     cd "${EXEC_DIR}" && \
-    curl -LO "https://gethstore.blob.core.windows.net/builds/${GETH_ARCHIVE}.tar.gz" && \
+    curl -fLO "https://gethstore.blob.core.windows.net/builds/${GETH_ARCHIVE}.tar.gz" && \
     tar -xvzf "${GETH_ARCHIVE}.tar.gz" && \
     mv "${GETH_ARCHIVE}/geth" . && \
     rm -rf "${GETH_ARCHIVE}" "${GETH_ARCHIVE}.tar.gz" && \
@@ -76,9 +76,9 @@ RUN mkdir -p "${PRYSM_DIR}" && \
     cd "${PRYSM_DIR}" && \
     export PRYSM_PLATFORM_ARCH="${PLATFORM_ARCH}" && \
     if [ "$ARCH" = "amd64" ]; then export PRYSM_PLATFORM_ARCH="modern-${PLATFORM_ARCH}"; fi && \
-    curl -Lo beacon-chain "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/beacon-chain-v${PRYSM_VERSION}-${PRYSM_PLATFORM_ARCH}" && \
-    curl -Lo validator "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/validator-v${PRYSM_VERSION}-${PLATFORM_ARCH}" && \
-    curl -Lo prysmctl "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/prysmctl-v${PRYSM_VERSION}-${PLATFORM_ARCH}" && \
+    curl -fLo beacon-chain "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/beacon-chain-v${PRYSM_VERSION}-${PRYSM_PLATFORM_ARCH}" && \
+    curl -fLo validator "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/validator-v${PRYSM_VERSION}-${PLATFORM_ARCH}" && \
+    curl -fLo prysmctl "https://github.com/prysmaticlabs/prysm/releases/download/v${PRYSM_VERSION}/prysmctl-v${PRYSM_VERSION}-${PLATFORM_ARCH}" && \
     chmod +x beacon-chain validator prysmctl
 ENV PATH="${PATH}:${PRYSM_DIR}"
 
@@ -87,7 +87,7 @@ ARG MEVBOOST_VERSION
 ENV MEV_ARCHIVE="mev-boost_${MEVBOOST_VERSION}_linux_${ARCH}"
 RUN mkdir -p "${MEV_DIR}" && \
     cd "${MEV_DIR}" && \
-    curl -LO "https://github.com/flashbots/mev-boost/releases/download/v${MEVBOOST_VERSION}/${MEV_ARCHIVE}.tar.gz" && \
+    curl -fLO "https://github.com/flashbots/mev-boost/releases/download/v${MEVBOOST_VERSION}/${MEV_ARCHIVE}.tar.gz" && \
     tar -xvzf "${MEV_ARCHIVE}.tar.gz" && \
     rm -f "${MEV_ARCHIVE}.tar.gz" LICENSE README.md && \
     chmod +x mev-boost

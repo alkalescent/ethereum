@@ -25,7 +25,6 @@ graph TB
         EBS["EBS Volume"]
         Snapshot["EBS Snapshots"]
         SSM["SSM Parameter Store"]
-        Lambda["Snapshot Validator<br/>(Lambda)"]
         ASG["Auto Scaling Group"]
     end
     
@@ -38,8 +37,6 @@ graph TB
     ECS --> EBS
     Node --> Snapshot
     Node --> SSM
-    Lambda --> SSM
-    Lambda --> Snapshot
     MEV --> Relays
     Geth --> Peers
     Beacon --> Peers

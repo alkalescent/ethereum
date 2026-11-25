@@ -14,7 +14,6 @@ DEV: bool = DEPLOY_ENV.lower() == "dev"
 # Process management
 KILL_TIME: int = 30
 VPN_TIMEOUT: int = 10
-MAX_PEERS: int = 10
 
 
 def get_env_bool(var_name: str) -> bool:

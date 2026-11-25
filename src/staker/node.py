@@ -156,7 +156,7 @@ class Node:
         args = [
             "--http",
             "--http.api",
-            "eth,net,engine,admin",
+            "eth,net",
             "--state.scheme=path",
         ]
 
@@ -233,6 +233,7 @@ class Node:
         args = [
             "--accept-terms-of-use",
             "--enable-builder",
+            "--enable-doppelganger",
             f"--wallet-dir={self.prysm_wallet_dir}",
             f"--suggested-fee-recipient={ETH_ADDR}",
             f"--wallet-password-file={self.prysm_wallet_dir}/password.txt",
@@ -399,7 +400,7 @@ class Node:
         Returns:
             The formatted log line, or None if empty.
         """
-        decoded = line.decode().strip()
+        decoded = line.decode(errors="replace").strip()
         if decoded:
             log = f"{prefix} {decoded}"
             colored = colorize_log(log)

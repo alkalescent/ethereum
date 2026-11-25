@@ -2,9 +2,10 @@
 
 from unittest.mock import MagicMock
 
+import pytest
 import requests
 
-from staker.utils import colorize_log, get_public_ip
+from staker.utils import colorize_log, get_checkpoint, get_public_ip
 
 
 class TestColorizeLog:
@@ -68,12 +69,14 @@ class TestGetPublicIp:
             ],
         )
         mock_print = mocker.patch("builtins.print")
+        mock_sleep = mocker.patch("staker.utils.sleep")
 
         result = get_public_ip()
 
         assert result == "5.6.7.8"
         mock_print.assert_called_once()
         assert "trying alternate" in str(mock_print.call_args)
+        mock_sleep.assert_called_once_with(1)
 
     def test_alternates_domains(self, mocker):
         # Both domains fail once each, then second succeeds
@@ -89,7 +92,33 @@ class TestGetPublicIp:
             ],
         )
         mocker.patch("builtins.print")
+        mocker.patch("staker.utils.sleep")
 
         result = get_public_ip()
 
         assert result == "9.10.11.12"
+
+
+class TestGetCheckpoint:
+    """Tests for get_checkpoint function."""
+
+    def test_returns_finalized_root_and_epoch(self, mocker):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"data": {"finalized": {"root": "0xabc", "epoch": "123"}}}
+        mock_get = mocker.patch("staker.utils.requests.get", return_value=mock_response)
+
+        result = get_checkpoint("hoodi")
+
+        assert result == "0xabc:123"
+        assert mock_get.call_args[0][0] == (
+            "https://beaconstate-hoodi.chainsafe.io"
+            "/eth/v1/beacon/states/finalized/finality_checkpoints"
+        )
+
+    def test_raises_on_http_error(self, mocker):
+        mock_response = MagicMock()
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("503")
+        mocker.patch("staker.utils.requests.get", return_value=mock_response)
+
+        with pytest.raises(requests.exceptions.HTTPError):
+            get_checkpoint("mainnet")

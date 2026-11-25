@@ -234,6 +234,85 @@ class TestSnapshot:
 
         assert result is True
 
+    def _stub_outdated_instance(self, snapshot, mocker, snapshots, template_version=1):
+        """Stub a group whose running instance uses launch template version 1."""
+        snapshot.instance_id = "i-running"
+        snapshot.volume_id = "vol-running"
+        mocker.patch.object(snapshot, "_get_snapshots", return_value=snapshots)
+        mocker.patch.object(snapshot, "_get_param", return_value="snap-old")
+        mocker.patch.object(snapshot, "_put_param")
+        snapshot.ec2.describe_launch_template_versions.return_value = {
+            "LaunchTemplateVersions": [
+                {
+                    "VersionNumber": template_version,
+                    "LaunchTemplateData": {
+                        "BlockDeviceMappings": [
+                            {"DeviceName": "/dev/sdx", "Ebs": {"SnapshotId": "snap-old"}}
+                        ]
+                    },
+                }
+            ]
+        }
+        snapshot.ec2.create_launch_template_version.return_value = {
+            "LaunchTemplateVersion": {"VersionNumber": 2}
+        }
+        snapshot.auto.describe_auto_scaling_groups.return_value = {
+            "AutoScalingGroups": [
+                {
+                    "LaunchTemplate": {"Version": "1"},
+                    "Instances": [{"InstanceId": "i-running", "LaunchTemplate": {"Version": "1"}}],
+                }
+            ]
+        }
+
+    def test_update_keeps_instance_whose_volume_made_the_snapshot(self, mock_boto3, mocker):
+        """Test a backup of this instance's own volume does not replace the instance."""
+        snapshot = Snapshot()
+        latest = {
+            "SnapshotId": "snap-new",
+            "VolumeId": "vol-running",
+            "StartTime": datetime.now(UTC),
+        }
+        self._stub_outdated_instance(snapshot, mocker, [latest])
+
+        result = snapshot.update()
+
+        assert result is False
+        snapshot.ec2.create_launch_template_version.assert_called_once()
+        snapshot.auto.update_auto_scaling_group.assert_called_once()
+
+    def test_update_keeps_instance_restored_from_latest_snapshot(self, mock_boto3, mocker):
+        """Test an instance whose volume came from the latest snapshot is kept."""
+        snapshot = Snapshot()
+        latest = {"SnapshotId": "snap-new", "VolumeId": "vol-other", "StartTime": datetime.now(UTC)}
+        self._stub_outdated_instance(snapshot, mocker, [latest])
+        mocker.patch.object(snapshot, "_get_curr_snapshot_id", return_value="snap-new")
+
+        result = snapshot.update()
+
+        assert result is False
+
+    def test_update_replaces_instance_behind_snapshot_of_other_volume(self, mock_boto3, mocker):
+        """Test an instance restored from an older snapshot is replaced."""
+        snapshot = Snapshot()
+        latest = {"SnapshotId": "snap-new", "VolumeId": "vol-other", "StartTime": datetime.now(UTC)}
+        self._stub_outdated_instance(snapshot, mocker, [latest])
+        mocker.patch.object(snapshot, "_get_curr_snapshot_id", return_value="snap-old")
+
+        result = snapshot.update()
+
+        assert result is True
+
+    def test_update_keeps_instance_without_snapshots(self, mock_boto3, mocker):
+        """Test a group update with no snapshot to restore keeps the instance."""
+        snapshot = Snapshot()
+        self._stub_outdated_instance(snapshot, mocker, [], template_version=2)
+
+        result = snapshot.update()
+
+        assert result is False
+        snapshot.auto.update_auto_scaling_group.assert_called_once()
+
     def test_instance_is_draining_returns_true(self, mock_boto3, mocker):
         """Test instance_is_draining returns True when draining."""
         snapshot = Snapshot()
@@ -310,6 +389,22 @@ class TestSnapshot:
         result = snapshot._get_curr_snapshot_id()
 
         assert result == "snap-xyz"
+
+    def test_get_curr_snapshot_id_returns_none_without_snapshot(self, mock_boto3, mocker):
+        """Test _get_curr_snapshot_id returns None for a volume launched without a snapshot."""
+        snapshot = Snapshot()
+        snapshot.instance_id = "i-123"
+
+        mocker.patch("staker.snapshot.AWS", True)
+        snapshot.ec2.get_launch_template_data.return_value = {
+            "LaunchTemplateData": {
+                "BlockDeviceMappings": [{"DeviceName": "/dev/sdx", "Ebs": {"VolumeSize": 500}}]
+            }
+        }
+
+        result = snapshot._get_curr_snapshot_id()
+
+        assert result is None
 
     def test_get_curr_snapshot_id_returns_none_on_error(self, mock_boto3, mocker):
         """Test _get_curr_snapshot_id returns None on error."""

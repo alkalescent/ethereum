@@ -164,6 +164,10 @@ class TestNodeLogging:
         result = node._print_line("PREFIX", b"   \n")
         assert result is None
 
+    def test_print_line_replaces_invalid_utf8(self, node):
+        result = node._print_line("PREFIX", b"caf\xe9 latin-1\n")
+        assert result == "PREFIX caf\ufffd latin-1"
+
 
 class TestNodeProcessState:
     """Tests for Node process state checking."""
@@ -510,12 +514,21 @@ class TestNodeClientProcesses:
         call_args = mock_run.call_args[0][0]
         assert any("--datadir=" in arg for arg in call_args)
 
+    def test_execution_serves_only_eth_and_net_over_http(self, node, mocker):
+        mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
+        node._execution()
+
+        call_args = mock_run.call_args[0][0]
+        assert call_args[call_args.index("--http.api") + 1] == "eth,net"
+
     def test_consensus_includes_checkpoint_sync(self, node, mocker):
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
+        mocker.patch("staker.node.get_checkpoint", return_value="0xabc:123")
         node._consensus()
 
         call_args = mock_run.call_args[0][0]
         assert any("checkpoint-sync-url" in arg for arg in call_args)
+        assert "--weak-subjectivity-checkpoint=0xabc:123" in call_args
 
     def test_validation_includes_enable_builder(self, node, mocker):
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
@@ -523,6 +536,13 @@ class TestNodeClientProcesses:
 
         call_args = mock_run.call_args[0][0]
         assert "--enable-builder" in call_args
+
+    def test_validation_enables_doppelganger_check(self, node, mocker):
+        mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
+        node._validation()
+
+        call_args = mock_run.call_args[0][0]
+        assert "--enable-doppelganger" in call_args
 
     def test_mev_includes_relays(self, node, mocker):
         node.relays = ["http://relay1", "http://relay2"]
@@ -559,6 +579,7 @@ class TestNodeProductionMode:
     def test_consensus_includes_mainnet(self, node, mocker):
         """Test consensus uses --mainnet in production."""
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
+        mocker.patch("staker.node.get_checkpoint", return_value="0xabc:123")
         node._consensus()
 
         call_args = mock_run.call_args[0][0]
@@ -587,6 +608,7 @@ class TestNodeProductionMode:
     def test_consensus_includes_p2p_host_dns(self, node, mocker):
         """Test consensus includes p2p-host-dns when available."""
         mock_run = mocker.patch.object(node, "_run_cmd", return_value=MagicMock())
+        mocker.patch("staker.node.get_checkpoint", return_value="0xabc:123")
 
         # Mock environment to return a p2p host
         mocker.patch.object(node.env, "get_p2p_host_dns", return_value="node.example.com")
