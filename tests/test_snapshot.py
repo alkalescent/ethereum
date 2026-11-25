@@ -408,15 +408,41 @@ class TestSnapshot:
 
         assert result is None
 
-    def test_get_curr_snapshot_id_returns_none_on_error(self, mock_boto3, mocker):
-        """Test _get_curr_snapshot_id returns None on error."""
+    def test_get_curr_snapshot_id_raises_on_error(self, mock_boto3, mocker):
+        """Test _get_curr_snapshot_id raises a failed read, unlike a volume without a snapshot."""
         snapshot = Snapshot()
 
         mocker.patch("staker.snapshot.AWS", True)
-        snapshot.ec2.get_launch_template_data.side_effect = ClientError(
+        snapshot.ec2.get_launch_template_data.side_effect = self._template_read_error()
+
+        with pytest.raises(ClientError):
+            snapshot._get_curr_snapshot_id()
+
+    def test_get_exceptions_keeps_param_when_template_read_fails(self, mock_boto3, mocker):
+        """Test a failed launch template read still protects the parameter's snapshot."""
+        snapshot = Snapshot()
+        mocker.patch("staker.snapshot.AWS", True)
+        mocker.patch.object(snapshot, "_get_param", return_value="snap-param")
+        snapshot.ec2.get_launch_template_data.side_effect = self._template_read_error()
+
+        assert snapshot._get_exceptions() == {"snap-param"}
+
+    def test_update_keeps_instance_when_template_read_fails(self, mock_boto3, mocker):
+        """Test an outdated instance is kept when its launch template data can't be read."""
+        snapshot = Snapshot()
+        latest = {"SnapshotId": "snap-new", "VolumeId": "vol-other", "StartTime": datetime.now(UTC)}
+        self._stub_outdated_instance(snapshot, mocker, [latest])
+        mocker.patch("staker.snapshot.AWS", True)
+        snapshot.ec2.get_launch_template_data.side_effect = self._template_read_error()
+
+        result = snapshot.update()
+
+        assert result is False
+        snapshot.ec2.get_launch_template_data.assert_called_once_with(InstanceId="i-running")
+
+    @staticmethod
+    def _template_read_error() -> ClientError:
+        """A ClientError from GetLaunchTemplateData."""
+        return ClientError(
             {"Error": {"Code": "InvalidInstance", "Message": "API error"}}, "GetLaunchTemplateData"
         )
-
-        result = snapshot._get_curr_snapshot_id()
-
-        assert result is None

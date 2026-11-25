@@ -198,11 +198,12 @@ class Snapshot(SnapshotManager):
 
     def _get_exceptions(self) -> set[str]:
         """Get snapshot IDs that should not be purged."""
-        exceptions = {
-            exception
-            for exception in [self._get_param(), self._get_curr_snapshot_id()]
-            if exception
-        }
+        try:
+            curr_snapshot_id = self._get_curr_snapshot_id()
+        except ClientError as e:
+            logging.exception(e)
+            curr_snapshot_id = None
+        exceptions = {exception for exception in [self._get_param(), curr_snapshot_id] if exception}
         return exceptions
 
     def _get_snapshot_time(self, snapshot: dict[str, Any]) -> datetime:
@@ -252,15 +253,20 @@ class Snapshot(SnapshotManager):
             return None
 
     def _get_curr_snapshot_id(self) -> str | None:
-        """Get snapshot ID from current instance's launch template."""
-        try:
-            if AWS:
-                launch_template = self.ec2.get_launch_template_data(InstanceId=self.instance_id)
-                for device in launch_template["LaunchTemplateData"]["BlockDeviceMappings"]:
-                    if device["DeviceName"] == "/dev/sdx":
-                        return device["Ebs"].get("SnapshotId")
-        except ClientError as e:
-            logging.exception(e)
+        """Get snapshot ID from current instance's launch template.
+
+        Returns:
+            The snapshot the instance's volume was created from, or None for a
+            volume created without one (and outside AWS).
+
+        Raises:
+            ClientError: If the instance's launch template data can't be read.
+        """
+        if AWS:
+            launch_template = self.ec2.get_launch_template_data(InstanceId=self.instance_id)
+            for device in launch_template["LaunchTemplateData"]["BlockDeviceMappings"]:
+                if device["DeviceName"] == "/dev/sdx":
+                    return device["Ebs"].get("SnapshotId")
         return None
 
     def _is_behind(self, snapshot: dict[str, Any]) -> bool:
@@ -274,12 +280,18 @@ class Snapshot(SnapshotManager):
 
         Returns:
             True if the snapshot came from another volume and this volume was
-            not restored from it.
+            not restored from it. False when the instance's launch template
+            can't be read, so a failed read keeps the instance.
         """
         snapshot_id = snapshot.get("SnapshotId")
         if not snapshot_id or snapshot.get("VolumeId") == self.volume_id:
             return False
-        return self._get_curr_snapshot_id() != snapshot_id
+        try:
+            curr_snapshot_id = self._get_curr_snapshot_id()
+        except ClientError as e:
+            logging.exception(e)
+            return False
+        return curr_snapshot_id != snapshot_id
 
     def update(self) -> bool:
         """Update launch template with latest snapshot.
