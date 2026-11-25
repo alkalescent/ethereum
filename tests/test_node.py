@@ -2,12 +2,14 @@
 
 import os
 import signal
-from unittest.mock import MagicMock
+from types import SimpleNamespace
+from unittest.mock import MagicMock, call
 
 import pytest
 
+from staker.config import KILL_TIME, VALIDATOR_RESTART_WAIT
 from staker.environment import Environment
-from staker.node import Node
+from staker.node import Node, PrefixedStream
 from staker.snapshot import NoOpSnapshotManager
 
 
@@ -245,6 +247,196 @@ class TestNodeErrorHandling:
 
         assert result is False
         mock_interrupt.assert_not_called()
+
+
+class TestNodeValidatorRestart:
+    """Tests for restarting a validator that stays up after a failed start."""
+
+    FAILURE = (
+        '(( _VALIDATION )) level=error msg="Could not create validator runner" '
+        'error="could not succeed with doppelganger check"'
+    )
+
+    @pytest.fixture
+    def node(self, mocker, tmp_path):
+        mocker.patch("staker.node.DOCKER", False)
+        mocker.patch("staker.node.DEV", True)
+        logs_file = tmp_path / "logs.txt"
+        env = MockEnvironment(logs_path=str(logs_file))
+        return Node(env=env, snapshot=NoOpSnapshotManager())
+
+    @pytest.fixture
+    def clock(self, mocker):
+        """Patch time() to a settable clock and make sleep() advance it."""
+        clock = SimpleNamespace(now=1000.0)
+        mocker.patch("staker.node.time", side_effect=lambda: clock.now)
+
+        def sleep(seconds):
+            clock.now += seconds
+
+        mocker.patch("staker.node.sleep", side_effect=sleep)
+        return clock
+
+    @staticmethod
+    def _running(node):
+        """Give the node four running processes and their streams."""
+        prefixes = [
+            "<<< EXECUTION >>>",
+            "[[[ CONSENSUS ]]]",
+            "(( _VALIDATION ))",
+            "+++ MEV_BOOST +++",
+        ]
+        node.processes = []
+        for pid, prefix in enumerate(prefixes, start=1):
+            process = MagicMock(pid=pid)
+            process.poll.return_value = None
+            node.processes.append({"process": process, "prefix": prefix})
+        node.streams = [MagicMock(prefix=prefix) for prefix in prefixes]
+
+    def test_restarts_only_after_the_wait(self, node, mocker, clock):
+        restart = mocker.patch.object(node, "_restart_validator")
+
+        assert node._restart_stuck_validator([self.FAILURE]) is False
+        clock.now += VALIDATOR_RESTART_WAIT - 1
+        assert node._restart_stuck_validator([None]) is False
+        restart.assert_not_called()
+
+        clock.now += 1
+        assert node._restart_stuck_validator([None]) is True
+        restart.assert_called_once_with()
+
+    def test_keeps_the_first_failure_time(self, node, mocker, clock):
+        restart = mocker.patch.object(node, "_restart_validator")
+
+        node._restart_stuck_validator([self.FAILURE])
+        clock.now += VALIDATOR_RESTART_WAIT
+
+        assert node._restart_stuck_validator([self.FAILURE]) is True
+        restart.assert_called_once_with()
+
+    def test_ignores_the_message_from_other_processes(self, node, clock):
+        logs = ['[[[ CONSENSUS ]]] msg="Could not create validator runner"', None]
+
+        assert node._restart_stuck_validator(logs) is False
+        assert node.runner_failed_at is None
+
+    def test_restart_replaces_only_the_validator_in_place(self, node, mocker, clock):
+        self._running(node)
+        processes, streams = node.processes, node.streams
+        old_processes, old_streams = list(processes), list(streams)
+        old = processes[2]["process"]
+        old.poll.return_value = 0
+        mock_kill = mocker.patch("staker.node.os.kill")
+        squeeze = mocker.patch.object(node, "_squeeze_logs")
+        new = MagicMock(pid=5)
+        new.stdout.readline.return_value = b"new validator\n"
+        mocker.patch.object(node, "_validation", return_value=new)
+        node.runner_failed_at = 0.0
+
+        node._restart_validator()
+
+        mock_kill.assert_called_once_with(3, signal.SIGINT)
+        squeeze.assert_called_once_with([old_processes[2]])
+        assert node.processes is processes
+        assert node.streams is streams
+        assert processes[2] == {"process": new, "prefix": "(( _VALIDATION ))"}
+        assert isinstance(streams[2], PrefixedStream)
+        assert streams[2].prefix == "(( _VALIDATION ))"
+        assert streams[2].readline() == b"new validator\n"
+        for i in (0, 1, 3):
+            assert processes[i] is old_processes[i]
+            assert streams[i] is old_streams[i]
+        assert node.runner_failed_at is None
+
+    def test_restart_kills_a_validator_that_outlasts_kill_time(self, node, mocker, clock):
+        self._running(node)
+        old = node.processes[2]["process"]
+
+        def kill(pid, sig):
+            if sig == signal.SIGKILL:
+                old.poll.return_value = -9
+
+        mock_kill = mocker.patch("staker.node.os.kill", side_effect=kill)
+        mocker.patch.object(node, "_squeeze_logs")
+        mocker.patch.object(node, "_validation", return_value=MagicMock())
+
+        node._restart_validator()
+
+        assert mock_kill.call_args_list == [call(3, signal.SIGINT), call(3, signal.SIGKILL)]
+        assert clock.now == 1000.0 + KILL_TIME
+
+    def test_restart_goes_on_when_the_validator_already_exited(self, node, mocker, clock):
+        self._running(node)
+        node.processes[2]["process"].poll.return_value = 1
+        mock_kill = mocker.patch("staker.node.os.kill", side_effect=ProcessLookupError)
+        mock_log = mocker.patch("staker.node.logging.exception")
+        mocker.patch.object(node, "_squeeze_logs")
+        new = MagicMock()
+        mocker.patch.object(node, "_validation", return_value=new)
+
+        node._restart_validator()
+
+        mock_kill.assert_called_once_with(3, signal.SIGINT)
+        mock_log.assert_called_once()
+        assert node.processes[2]["process"] is new
+
+    def test_start_clears_a_recorded_failure(self, node, mocker):
+        mocker.patch("staker.node.VPN", False)
+        for name in ("_execution", "_consensus", "_validation", "_mev"):
+            mocker.patch.object(node, name, return_value=MagicMock())
+        node.runner_failed_at = 1000.0
+
+        node._start()
+
+        assert node.runner_failed_at is None
+
+    def test_run_restarts_the_validator_without_restarting_the_node(self, node, mocker, clock):
+        mocker.patch.object(node.snapshot, "backup")
+        mocker.patch.object(node.booster, "get_relays", return_value=[])
+        mocker.patch.object(node.snapshot, "is_older_than", return_value=False)
+        start = mocker.patch.object(node, "_start", return_value=([], []))
+        mocker.patch(
+            "staker.node.select.select",
+            side_effect=[([], [], []), ([], [], []), KeyboardInterrupt],
+        )
+        batches = [[self.FAILURE], [None]]
+
+        def stream_logs(_rstreams):
+            if len(batches) == 1:
+                clock.now += VALIDATOR_RESTART_WAIT
+            return batches.pop(0)
+
+        mocker.patch.object(node, "_stream_logs", side_effect=stream_logs)
+        mocker.patch.object(node, "_any_process_is_dead", return_value=False)
+        restart = mocker.patch.object(node, "_restart_validator")
+        handle = mocker.patch.object(node, "_handle_gracefully")
+
+        with pytest.raises(KeyboardInterrupt):
+            node.run()
+
+        restart.assert_called_once_with()
+        start.assert_called_once()
+        handle.assert_not_called()
+
+    @pytest.mark.parametrize("stopping", ["snapshot", "backfill"])
+    def test_run_leaves_the_validator_while_the_node_stops(self, node, mocker, clock, stopping):
+        mocker.patch.object(node.snapshot, "backup")
+        mocker.patch.object(node.booster, "get_relays", return_value=[])
+        mocker.patch.object(node.snapshot, "is_older_than", return_value=stopping == "snapshot")
+        mocker.patch.object(node, "_start", return_value=([], []))
+        mocker.patch("staker.node.select.select", side_effect=[([], [], []), KeyboardInterrupt])
+        mocker.patch.object(node, "_interrupt")
+        logs = ["[[[ CONSENSUS ]]] Beacon backfilling failed"] if stopping == "backfill" else [None]
+        mocker.patch.object(node, "_stream_logs", return_value=logs)
+        mocker.patch.object(node, "_any_process_is_dead", return_value=False)
+        restart = mocker.patch.object(node, "_restart_validator")
+        node.runner_failed_at = 1000.0 - VALIDATOR_RESTART_WAIT
+
+        with pytest.raises(KeyboardInterrupt):
+            node.run()
+
+        node._interrupt.assert_called_once_with(hard=False)
+        restart.assert_not_called()
 
 
 class TestNodeGracefulShutdown:

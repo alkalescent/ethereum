@@ -27,6 +27,7 @@ from staker.config import (
     ETH_ADDR,
     KILL_TIME,
     SNAPSHOT_DAYS,
+    VALIDATOR_RESTART_WAIT,
     VPN,
     VPN_TIMEOUT,
 )
@@ -39,6 +40,10 @@ home_dir = os.path.expanduser("~")
 platform = sys.platform.lower()
 console = Console(highlight=False)
 print = console.print
+
+VALIDATION_PREFIX = "(( _VALIDATION ))"
+# Prysm's validator logs this when its startup checks fail, then stays up without validating.
+RUNNER_FAILURE = "Could not create validator runner"
 
 
 @runtime_checkable
@@ -123,6 +128,7 @@ class Node:
         self.processes: list[ProcessMeta] = []
         self.streams: list[ProcessStream] = []
         self.relays: list[str] = []
+        self.runner_failed_at: float | None = None
         self.most_recent: dict | None = None
         self.logs_file = env.get_logs_path()
 
@@ -348,7 +354,7 @@ class Node:
         processes += [
             {"process": self._execution(), "prefix": "<<< EXECUTION >>>"},
             {"process": self._consensus(), "prefix": "[[[ CONSENSUS ]]]"},
-            {"process": self._validation(), "prefix": "(( _VALIDATION ))"},
+            {"process": self._validation(), "prefix": VALIDATION_PREFIX},
             {"process": self._mev(), "prefix": "+++ MEV_BOOST +++"},
         ]
 
@@ -360,6 +366,7 @@ class Node:
 
         self.processes = processes
         self.streams = streams
+        self.runner_failed_at = None
         return processes, streams
 
     def _signal_processes(self, sig: signal.Signals, prefix: str, *, hard: bool = True) -> None:
@@ -448,6 +455,64 @@ class Node:
                 return True
         return False
 
+    def _restart_stuck_validator(self, logs: list[str | None]) -> bool:
+        """Restart the validator once it has sat idle long enough after a failed start.
+
+        When a startup check fails (the doppelganger check among them), Prysm's
+        validator logs RUNNER_FAILURE and stays up without validating or retrying,
+        so no process dies and the node never restarts it. The doppelganger check
+        reads the current epoch and the two before it, so the restart waits
+        VALIDATOR_RESTART_WAIT seconds for that window to pass.
+
+        Args:
+            logs: List of log lines to check.
+
+        Returns:
+            True if the validator was restarted.
+        """
+        if self.runner_failed_at is None:
+            for log in logs:
+                if log and log.startswith(VALIDATION_PREFIX) and RUNNER_FAILURE in log:
+                    self.runner_failed_at = time()
+                    print(f"Validator runner failed, restarting it in {VALIDATOR_RESTART_WAIT}s...")
+                    break
+        if self.runner_failed_at is None or time() - self.runner_failed_at < VALIDATOR_RESTART_WAIT:
+            return False
+        self._restart_validator()
+        return True
+
+    def _restart_validator(self) -> None:
+        """Stop the validator and start a new one while the other processes keep running.
+
+        Sends SIGINT, waits for KILL_TIME, then sends SIGKILL if needed. The new
+        process and its stream take the old ones' places in self.processes and
+        self.streams, the lists the run loop reads.
+        """
+        index = next(
+            i for i, meta in enumerate(self.processes) if meta["prefix"] == VALIDATION_PREFIX
+        )
+        old = self.processes[index]
+        process = old["process"]
+        print("Restarting the validator...")
+        for sig in (signal.SIGINT, signal.SIGKILL):
+            try:
+                os.kill(process.pid, sig)
+            except OSError as e:
+                logging.exception(e)
+            start = time()
+            while process.poll() is None and time() - start < KILL_TIME:
+                sleep(1)
+            if process.poll() is not None:
+                break
+        self._squeeze_logs([old])
+
+        new = self._validation()
+        stdout = new.stdout
+        assert stdout is not None
+        self.processes[index] = {"process": new, "prefix": VALIDATION_PREFIX}
+        self.streams[index] = PrefixedStream(stdout, VALIDATION_PREFIX)
+        self.runner_failed_at = None
+
     def _poll_processes(self, processes: list[ProcessMeta]):
         """Generate poll results for all processes.
 
@@ -527,6 +592,7 @@ class Node:
             self.relays = self.booster.get_relays()
             processes, streams = self._start()
             sent_interrupt = False
+            error_interrupt = False
 
             while True:
                 rstreams, _, _ = select.select(streams, [], [])
@@ -537,7 +603,9 @@ class Node:
                     sent_interrupt = True
 
                 logs = self._stream_logs(rstreams)
-                self._interrupt_on_error(logs)
+                error_interrupt = self._interrupt_on_error(logs) or error_interrupt
+                if not (sent_interrupt or error_interrupt):
+                    self._restart_stuck_validator(logs)
                 if self._any_process_is_dead(processes):
                     break
 
